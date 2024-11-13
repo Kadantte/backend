@@ -1,0 +1,48 @@
+name: morbo
+services:
+  backend:
+    build: .
+    image: ghcr.io/morbo-org/backend:latest
+    environment:
+      - MORBO_DB_HOST=db
+      - MORBO_DB_PORT=5432
+      - MORBO_DB_USER=morbo
+      - MORBO_DB_PASSWORD=morbo
+      - MORBO_DB_NAME=morbo
+    develop:
+      watch:
+        - path: backend
+          action: rebuild
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - db
+      - traefik
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik
+  db:
+    image: postgres:17-alpine
+    environment:
+      - POSTGRES_USER=morbo
+      - POSTGRES_PASSWORD=morbo
+      - POSTGRES_DB=morbo
+      - PGUSER=morbo
+    restart: unless-stopped
+    networks:
+      - db
+    volumes:
+      - db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+networks:
+  db:
+  traefik:
+    external: true
+volumes:
+  db:
