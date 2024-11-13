@@ -1,20 +1,27 @@
 package server
 
 import (
-	"io"
+	"encoding/json"
+	"fmt"
 	"net/http"
 )
 
-type feedsHandler struct{}
+type feedsHandler struct {
+	db *DB
+}
 
 func (handler *feedsHandler) handlePost(writer http.ResponseWriter, request *http.Request) {
-	body, err := io.ReadAll(request.Body)
-	if err != nil {
-		http.Error(writer, "failed to read the request body", http.StatusBadRequest)
+	type Feed struct {
+		URL string `json:"url"`
+	}
+
+	var feed Feed
+	if err := json.NewDecoder(request.Body).Decode(&feed); err != nil {
+		http.Error(writer, "failed to decode the request body", http.StatusBadRequest)
 		return
 	}
 
-	_ = body
+	fmt.Println(feed)
 }
 
 func (handler *feedsHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {

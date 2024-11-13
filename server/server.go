@@ -13,13 +13,20 @@ import (
 
 type Server struct {
 	http.Server
+	db *DB
 }
 
-func NewServer(ip string, port int) *Server {
+func NewServer(ip string, port int) (*Server, error) {
+	db, err := newDB()
+	if err != nil {
+		return nil, err
+	}
+
 	var server Server
 	server.Addr = fmt.Sprintf("%s:%d", ip, port)
-	server.Handler = NewServeMux()
-	return &server
+	server.Handler = NewServeMux(db)
+	server.db = db
+	return &server, nil
 }
 
 func (server *Server) ListenAndServe() error {
@@ -44,12 +51,15 @@ func (server *Server) ListenAndServe() error {
 		log.Printf("failed to serve: %v", err)
 	}
 
-	return server.Shutdown(context.Background())
+	return server.Shutdown()
 }
 
-func (server *Server) Shutdown(ctx context.Context) error {
+func (server *Server) Shutdown() error {
 	log.Println("shutdown initiated")
 	defer log.Println("shutdown finished")
+
+	log.Println("closing all database connections")
+	server.db.Close()
 
 	return server.Server.Shutdown(context.Background())
 }

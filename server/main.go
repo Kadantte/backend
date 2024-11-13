@@ -15,8 +15,12 @@ func Main(args []string) error {
 		return nil
 	}
 
-	server := NewServer(*ip, *port)
-	err := server.ListenAndServe()
+	server, err := NewServer(*ip, *port)
+	if err != nil {
+		return err
+	}
+
+	err = server.ListenAndServe()
 	if err != nil {
 		return err
 	}

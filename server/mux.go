@@ -8,8 +8,10 @@ type ServeMux struct {
 	feeds feedsHandler
 }
 
-func NewServeMux() *ServeMux {
-	mux := ServeMux{}
+func NewServeMux(db *DB) *ServeMux {
+	feeds := feedsHandler{db}
+	mux := ServeMux{feeds: feeds}
+
 	mux.Handle("/{$}", http.NotFoundHandler())
 	mux.Handle("/feeds/{$}", &mux.feeds)
 	return &mux
