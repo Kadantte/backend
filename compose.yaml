@@ -11,7 +11,7 @@ services:
       - MORBO_DB_NAME=morbo
     develop:
       watch:
-        - path: backend
+        - path: .
           action: rebuild
     restart: unless-stopped
     depends_on:
