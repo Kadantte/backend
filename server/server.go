@@ -13,19 +13,18 @@ import (
 
 type Server struct {
 	http.Server
-	db *DB
+	db DB
 }
 
 func NewServer(ip string, port int) (*Server, error) {
-	db, err := newDB()
-	if err != nil {
+	var server Server
+
+	if err := server.db.Connect(); err != nil {
 		return nil, err
 	}
 
-	var server Server
 	server.Addr = fmt.Sprintf("%s:%d", ip, port)
-	server.Handler = NewServeMux(db)
-	server.db = db
+	server.Handler = NewServeMux(&server.db)
 	return &server, nil
 }
 

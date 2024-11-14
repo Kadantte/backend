@@ -8,9 +8,11 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type DB = pgxpool.Pool
+type DB struct {
+	pool *pgxpool.Pool
+}
 
-func newDB() (*DB, error) {
+func (db *DB) Connect() error {
 	ctx := context.Background()
 
 	dbHost := os.Getenv("MORBO_DB_HOST")
@@ -37,17 +39,22 @@ func newDB() (*DB, error) {
 	connString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s", dbUser, dbPassword, dbHost, dbPort, dbName)
 	config, err := pgxpool.ParseConfig(connString)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	pool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if err := pool.Ping(ctx); err != nil {
-		return nil, err
+		return err
 	}
 
-	return pool, nil
+	db.pool = pool
+	return nil
+}
+
+func (db *DB) Close() {
+	db.pool.Close()
 }
