@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"morbo/db"
 )
 
 type feedsHandler struct {
-	db *DB
+	db *db.DB
 }
 
 func (handler *feedsHandler) handlePost(writer http.ResponseWriter, request *http.Request) {

@@ -1,6 +1,10 @@
 package server
 
-import "net/http"
+import (
+	"net/http"
+
+	"morbo/db"
+)
 
 type ServeMux struct {
 	http.ServeMux
@@ -8,7 +12,7 @@ type ServeMux struct {
 	feeds feedsHandler
 }
 
-func NewServeMux(db *DB) *ServeMux {
+func NewServeMux(db *db.DB) *ServeMux {
 	feeds := feedsHandler{db}
 	mux := ServeMux{feeds: feeds}
 

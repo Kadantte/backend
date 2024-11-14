@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log"
+	"fmt"
 	"os"
 
 	"morbo/server"
@@ -10,6 +10,7 @@ import (
 func main() {
 	err := server.Main(os.Args[1:])
 	if err != nil {
-		log.Fatal(err)
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 }

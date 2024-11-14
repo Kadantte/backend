@@ -9,22 +9,27 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+
+	"morbo/db"
+	"morbo/errors"
 )
 
 type Server struct {
 	http.Server
-	db DB
+	db *db.DB
 }
 
 func NewServer(ip string, port int) (*Server, error) {
 	var server Server
 
-	if err := server.db.Connect(); err != nil {
-		return nil, err
+	db, err := db.Prepare()
+	if err != nil {
+		return nil, errors.Chain("failed to prepare the database", err)
 	}
 
 	server.Addr = fmt.Sprintf("%s:%d", ip, port)
-	server.Handler = NewServeMux(&server.db)
+	server.Handler = NewServeMux(db)
+	server.db = db
 	return &server, nil
 }
 
