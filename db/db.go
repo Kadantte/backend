@@ -88,14 +88,16 @@ func (db *DB) migrate() error {
 	if err != nil {
 		return errors.Chain("failed to get the current schema version", err)
 	}
-	log.Println("current schema version:", currentVersion)
+	log.Println("current database schema version:", currentVersion)
 
 	for _, migration := range migrations {
 		if migration.version > currentVersion {
-			fmt.Printf("applying migration to schema version %d\n", migration.version)
+			log.Printf("applying migration to database schema version %d\n", migration.version)
 			if _, err := db.pool.Exec(ctx, migration.sql); err != nil {
-				log.Printf("failed to apply migration to schema version %d: %v", migration.version, err)
-				return err
+				return errors.Chain(
+					fmt.Sprintf("failed to apply migration to database schema version %d", migration.version),
+					err,
+				)
 			}
 		}
 	}
