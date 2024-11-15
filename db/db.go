@@ -2,13 +2,13 @@ package db
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"log"
-	"morbo/errors"
 	"os"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"morbo/errors"
 )
 
 type DB struct {
@@ -76,10 +76,7 @@ func (db *DB) getCurrentVersion() (int, error) {
 	var version int
 	row := db.pool.QueryRow(context.Background(), "SELECT version FROM schema_version LIMIT 1")
 	if err := row.Scan(&version); err != nil {
-		if err == sql.ErrNoRows {
-			return 0, nil
-		}
-		return 0, err
+		return 0, nil
 	}
 	return version, nil
 }
