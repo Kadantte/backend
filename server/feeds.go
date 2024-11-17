@@ -2,7 +2,7 @@ package server
 
 import (
 	"encoding/json"
-	"fmt"
+	"log"
 	"net/http"
 
 	"morbo/db"
@@ -13,17 +13,29 @@ type feedsHandler struct {
 }
 
 func (handler *feedsHandler) handlePost(writer http.ResponseWriter, request *http.Request) {
-	type Feed struct {
+	type RequestBody struct {
 		URL string `json:"url"`
 	}
 
-	var feed Feed
-	if err := json.NewDecoder(request.Body).Decode(&feed); err != nil {
+	var requestBody RequestBody
+	if err := json.NewDecoder(request.Body).Decode(&requestBody); err != nil {
+		log.Println(err)
 		http.Error(writer, "failed to decode the request body", http.StatusBadRequest)
 		return
 	}
 
-	fmt.Println(feed)
+	rss, err := parseRSS(requestBody.URL)
+	if err != nil {
+		log.Println(err)
+		http.Error(writer, "failed to parse the RSS feed", http.StatusBadRequest)
+		return
+	}
+
+	type ResponseBody struct {
+		Title string `json:"title"`
+	}
+	writer.WriteHeader(http.StatusOK)
+	json.NewEncoder(writer).Encode(ResponseBody{rss.Channel.Title})
 }
 
 func (handler *feedsHandler) handleOptions(writer http.ResponseWriter, _ *http.Request) {
