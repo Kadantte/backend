@@ -9,14 +9,16 @@ import (
 type ServeMux struct {
 	http.ServeMux
 
-	feeds feedsHandler
+	feedHandler    feedHandler
 }
 
 func NewServeMux(db *db.DB) *ServeMux {
-	feeds := feedsHandler{db}
-	mux := ServeMux{feeds: feeds}
+	mux := ServeMux{
+		feedHandler: feedHandler{db},
+	}
 
 	mux.Handle("/{$}", http.NotFoundHandler())
-	mux.Handle("/feeds/{$}", &mux.feeds)
+	mux.Handle("/feed/{$}", &mux.feedHandler)
+
 	return &mux
 }

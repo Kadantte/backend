@@ -8,11 +8,11 @@ import (
 	"morbo/db"
 )
 
-type feedsHandler struct {
+type feedHandler struct {
 	db *db.DB
 }
 
-func (handler *feedsHandler) handlePost(writer http.ResponseWriter, request *http.Request) {
+func (handler *feedHandler) handlePost(writer http.ResponseWriter, request *http.Request) {
 	type RequestBody struct {
 		URL string `json:"url"`
 	}
@@ -38,13 +38,13 @@ func (handler *feedsHandler) handlePost(writer http.ResponseWriter, request *htt
 	json.NewEncoder(writer).Encode(ResponseBody{rss.Channel.Title})
 }
 
-func (handler *feedsHandler) handleOptions(writer http.ResponseWriter, _ *http.Request) {
+func (handler *feedHandler) handleOptions(writer http.ResponseWriter, _ *http.Request) {
 	writer.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 	writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
 	writer.WriteHeader(http.StatusOK)
 }
 
-func (handler *feedsHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+func (handler *feedHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	if origin := request.Header.Get("Origin"); origin != "" {
 		writer.Header().Set("Access-Control-Allow-Origin", origin)
 	}
