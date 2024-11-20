@@ -2,7 +2,6 @@ package server
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 
 	"morbo/db"
@@ -19,15 +18,13 @@ func (handler *feedHandler) handlePost(writer http.ResponseWriter, request *http
 
 	var requestBody RequestBody
 	if err := json.NewDecoder(request.Body).Decode(&requestBody); err != nil {
-		log.Println(err)
-		http.Error(writer, "failed to decode the request body", http.StatusBadRequest)
+		Error(writer, err, "failed to decode the request body", http.StatusBadRequest)
 		return
 	}
 
-	rss, err := parseRSS(requestBody.URL)
+	rss, err, statusCode := parseRSS(requestBody.URL)
 	if err != nil {
-		log.Println(err)
-		http.Error(writer, "failed to parse the RSS feed", http.StatusBadRequest)
+		Error(writer, err, "failed to parse the RSS feed", statusCode)
 		return
 	}
 

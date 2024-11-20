@@ -4,8 +4,9 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
-	"morbo/errors"
 	"net/http"
+
+	"morbo/errors"
 )
 
 type RSS struct {
@@ -27,27 +28,33 @@ type Item struct {
 	PubDate     string `xml:"pubDate"`
 }
 
-func parseRSS(url string) (*RSS, error) {
+type statusCode = int
+
+func parseRSS(url string) (*RSS, error, statusCode) {
 	resp, err := http.Get(url)
 	if err != nil {
-		return nil, errors.Chain(fmt.Sprintf("failed to request the RSS feed at %s", url), err)
+		err := errors.Chain(fmt.Sprintf("failed to request the RSS feed at %s", url), err)
+		return nil, err, http.StatusBadRequest
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.Chain(fmt.Sprintf("didn't find the RSS feed at %s", url), err)
+		err := fmt.Errorf("got a non-ok response code [%d] from the RSS feed at %s", resp.StatusCode, url)
+		return nil, err, resp.StatusCode
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, errors.Chain(fmt.Sprintf("failed to read the RSS feed at %s", url), err)
+		err := errors.Chain(fmt.Sprintf("failed to read the RSS feed at %s", url), err)
+		return nil, err, http.StatusUnprocessableEntity
 	}
 
 	var rss RSS
 	err = xml.Unmarshal(body, &rss)
 	if err != nil {
-		return nil, errors.Chain(fmt.Sprintf("failed to parse the RSS feed at %s", url), err)
+		err := errors.Chain(fmt.Sprintf("failed to parse the RSS feed at %s", url), err)
+		return nil, err, http.StatusInternalServerError
 	}
 
-	return &rss, nil
+	return &rss, nil, 0
 }
