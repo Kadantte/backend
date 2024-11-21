@@ -5,27 +5,30 @@ import (
 	"net/http"
 
 	"morbo/db"
+	"morbo/errors"
+	"morbo/log"
 )
 
 type feedHandler struct {
 	db *db.DB
 }
 
-func (handler *feedHandler) handlePost(writer http.ResponseWriter, request *http.Request) {
+func (handler *feedHandler) handlePost(writer http.ResponseWriter, request *http.Request) error {
 	type RequestBody struct {
 		URL string `json:"url"`
 	}
 
 	var requestBody RequestBody
 	if err := json.NewDecoder(request.Body).Decode(&requestBody); err != nil {
-		Error(writer, err, "failed to decode the request body", http.StatusBadRequest)
-		return
+		log.Error.Println(err)
+		Error(writer, "failed to decode the request body", http.StatusBadRequest)
+		return errors.Error
 	}
 
-	rss, err, statusCode := parseRSS(requestBody.URL)
+	rss, statusCode, err := parseRSS(requestBody.URL)
 	if err != nil {
-		Error(writer, err, "failed to parse the RSS feed", statusCode)
-		return
+		Error(writer, "failed to parse the RSS feed", statusCode)
+		return errors.Error
 	}
 
 	type ResponseBody struct {
@@ -33,6 +36,8 @@ func (handler *feedHandler) handlePost(writer http.ResponseWriter, request *http
 	}
 	writer.WriteHeader(http.StatusOK)
 	json.NewEncoder(writer).Encode(ResponseBody{rss.Channel.Title})
+
+	return nil
 }
 
 func (handler *feedHandler) handleOptions(writer http.ResponseWriter, _ *http.Request) {
@@ -47,9 +52,12 @@ func (handler *feedHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 	}
 	writer.Header().Set("Vary", "Origin")
 
+	log.Info.Printf("%s %s %s\n", request.RemoteAddr, request.Method, request.URL.Path)
 	switch request.Method {
 	case http.MethodPost:
-		handler.handlePost(writer, request)
+		if err := handler.handlePost(writer, request); err != nil {
+			log.Error.Println("failed to handle the POST request to \"/feed/\"")
+		}
 	case http.MethodOptions:
 		handler.handleOptions(writer, request)
 	default:

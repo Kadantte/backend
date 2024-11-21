@@ -2,12 +2,13 @@ package server
 
 import (
 	"fmt"
-	"log"
 	"net/http"
+
+	"morbo/log"
 )
 
-func Error(writer http.ResponseWriter, err error, message string, statusCode int) {
-	log.Println(err)
+func Error(writer http.ResponseWriter, message string, statusCode int) {
+	log.Error.Println(message)
 	writer.WriteHeader(statusCode)
 	fmt.Fprint(writer, message)
 }

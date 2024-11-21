@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 	"os"
@@ -12,6 +11,7 @@ import (
 
 	"morbo/db"
 	"morbo/errors"
+	"morbo/log"
 )
 
 type Server struct {
@@ -24,7 +24,9 @@ func NewServer(ip string, port int) (*Server, error) {
 
 	db, err := db.Prepare()
 	if err != nil {
-		return nil, errors.Chain("failed to prepare the database", err)
+		log.Error.Println(err)
+		log.Error.Println("failed to prepare the database")
+		return nil, errors.Error
 	}
 
 	server.Addr = fmt.Sprintf("%s:%d", ip, port)
@@ -36,9 +38,11 @@ func NewServer(ip string, port int) (*Server, error) {
 func (server *Server) ListenAndServe() error {
 	listener, err := net.Listen("tcp", server.Addr)
 	if err != nil {
-		return err
+		log.Error.Println(err)
+		log.Error.Printf("failed to listen at %s", server.Addr)
+		return errors.Error
 	}
-	log.Printf("listening at %v", server.Addr)
+	log.Info.Printf("listening at %v", server.Addr)
 
 	sigint := make(chan os.Signal, 1)
 	signal.Notify(sigint, syscall.SIGTERM, os.Interrupt)
@@ -52,17 +56,17 @@ func (server *Server) ListenAndServe() error {
 	case <-sigint:
 		print("\r")
 	case err := <-errs:
-		log.Printf("failed to serve: %v", err)
+		log.Error.Printf("failed to serve: %v", err)
 	}
 
 	return server.Shutdown()
 }
 
 func (server *Server) Shutdown() error {
-	log.Println("shutdown initiated")
-	defer log.Println("shutdown finished")
+	log.Info.Println("shutdown initiated")
+	defer log.Info.Println("shutdown finished")
 
-	log.Println("closing all database connections")
+	log.Info.Println("closing all database connections")
 	server.db.Close()
 
 	return server.Server.Shutdown(context.Background())

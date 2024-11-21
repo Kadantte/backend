@@ -2,13 +2,13 @@ package server
 
 import (
 	"encoding/json"
-	"errors"
 	"io"
-	"log"
 	"net/http"
 	"strings"
 
 	"morbo/db"
+	"morbo/errors"
+	"morbo/log"
 )
 
 type sessionHandler struct {
@@ -18,30 +18,35 @@ type sessionHandler struct {
 func (handler *sessionHandler) handlePost(writer http.ResponseWriter, request *http.Request) error {
 	body, err := io.ReadAll(request.Body)
 	if err != nil {
-		http.Error(writer, "failed to read the request body", http.StatusBadRequest)
-		return err
+		log.Error.Println(err)
+		Error(writer, "failed to read the request body", http.StatusBadRequest)
+		return errors.Error
 	}
 
 	var credentials db.Credentials
 	err = json.Unmarshal(body, &credentials)
 	if err != nil {
-		http.Error(writer, "couldn't parse the body as a JSON object", http.StatusBadRequest)
-		return err
+		log.Error.Println(err)
+		Error(writer, "couldn't parse the body as a JSON object", http.StatusBadRequest)
+		return errors.Error
 	}
 
-	userID, err := handler.db.AuthenticateByCredentials(credentials)
-	if errors.Is(err, db.Unathorized) {
-		http.Error(writer, "unauthorized", http.StatusUnauthorized)
-		return err
-	} else if errors.Is(err, db.InternalServerError) {
-		http.Error(writer, "internal server error", http.StatusInternalServerError)
-		return err
-	}
-
-	sessionToken, err := handler.db.CreateSessionToken(userID)
+	userID, statusCode, err := handler.db.AuthenticateByCredentials(credentials)
 	if err != nil {
-		http.Error(writer, err.Error(), http.StatusInternalServerError)
-		return err
+		switch statusCode {
+		case http.StatusUnauthorized:
+			Error(writer, "unauthorized", http.StatusUnauthorized)
+			return errors.Error
+		case http.StatusInternalServerError:
+			Error(writer, "internal server error", http.StatusInternalServerError)
+			return errors.Error
+		}
+	}
+
+	sessionToken, err := handler.db.GenerateSessionToken(userID)
+	if err != nil {
+		Error(writer, "failed to generate a session token", http.StatusInternalServerError)
+		return errors.Error
 	}
 
 	type loginResponse struct {
@@ -84,11 +89,16 @@ func (handler *sessionHandler) ServeHTTP(writer http.ResponseWriter, request *ht
 	}
 	writer.Header().Set("Vary", "Origin")
 
+	log.Info.Printf("%s %s\n", request.Method, request.URL.Path)
 	switch request.Method {
 	case http.MethodPost:
-		log.Println(handler.handlePost(writer, request))
+		if err := handler.handlePost(writer, request); err != nil {
+			log.Error.Println("failed to handle the POST request to \"/session/\"")
+		}
 	case http.MethodDelete:
-		log.Println(handler.handleDelete(writer, request))
+		if err := handler.handleDelete(writer, request); err != nil {
+			log.Error.Println("failed to handle the DELETE request to \"/session/\"")
+		}
 	case http.MethodOptions:
 		handler.handleOptions(writer, request)
 	default:
