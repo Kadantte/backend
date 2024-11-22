@@ -24,7 +24,6 @@ func NewServer(ip string, port int) (*Server, error) {
 
 	db, err := db.Prepare()
 	if err != nil {
-		log.Error.Println(err)
 		log.Error.Println("failed to prepare the database")
 		return nil, errors.Error
 	}

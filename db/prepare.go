@@ -15,13 +15,11 @@ func Prepare() (*DB, error) {
 	db := DB{}
 
 	if err := db.connect(); err != nil {
-		log.Error.Println(err)
 		log.Error.Println("failed to connect to the database")
 		return nil, errors.Error
 	}
 
 	if err := db.migrate(); err != nil {
-		log.Error.Println(err)
 		log.Error.Println("failed to migrate the database")
 		return nil, errors.Error
 	}
