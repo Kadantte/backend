@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"net/http"
 
+	"github.com/jackc/pgx/v5"
 	"golang.org/x/crypto/bcrypt"
 
 	"morbo/errors"
@@ -25,8 +26,8 @@ func (db *DB) AuthenticateByCredentials(credentials Credentials) (userID int, st
 	row := db.pool.QueryRow(context.Background(), query, credentials.Username)
 	err = row.Scan(&userID, &hashedPassword)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			log.Info.Println("no such user found")
+		if err == pgx.ErrNoRows {
+			log.Error.Println("no such user found")
 			return -1, http.StatusUnauthorized, errors.Error
 		}
 		log.Error.Println(err)
