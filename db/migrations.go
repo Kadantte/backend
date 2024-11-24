@@ -40,6 +40,8 @@ var migrations = []migration{
 				(id, username, password)
 			VALUES
 				(1, 'admin', '$2a$10$X0W3DOiy9dUP0F9xOX5o.uxckTsdpnzMJLiMYqE2kHnRIDYfWDfqC');
+
+			UPDATE schema_version SET version = 3;
 		`,
 	},
 }
