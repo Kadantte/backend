@@ -21,7 +21,7 @@ type Credentials struct {
 func (db *DB) AuthenticateByCredentials(credentials Credentials) (userID int, statusCode int, err error) {
 	var hashedPassword string
 
-	query := `SELECT id, password FROM users WHERE username = ?`
+	query := `SELECT id, password FROM users WHERE username = $1`
 	row := db.pool.QueryRow(context.Background(), query, credentials.Username)
 	err = row.Scan(&userID, &hashedPassword)
 	if err != nil {
@@ -45,7 +45,7 @@ func (db *DB) AuthenticateByCredentials(credentials Credentials) (userID int, st
 }
 
 func (db *DB) AuthenticateBySessionToken(sessionToken string) (userID int, statusCode int, err error) {
-	query := `SELECT user_id FROM sessions WHERE session_token = ?`
+	query := `SELECT user_id FROM sessions WHERE session_token = $1`
 	row := db.pool.QueryRow(context.Background(), query, sessionToken)
 	err = row.Scan(&userID)
 	if err != nil {
@@ -70,7 +70,7 @@ func (db *DB) GenerateSessionToken(userID int) (sessionToken string, err error) 
 	}
 	sessionToken = base64.RawURLEncoding.EncodeToString(byteSessionToken)
 
-	query := `INSERT INTO sessions (session_token, user_id) VALUES (?, ?)`
+	query := `INSERT INTO sessions (session_token, user_id) VALUES ($1, $2)`
 	_, err = db.pool.Exec(context.Background(), query, sessionToken, userID)
 	if err != nil {
 		log.Error.Println(err)
@@ -82,7 +82,7 @@ func (db *DB) GenerateSessionToken(userID int) (sessionToken string, err error) 
 }
 
 func (db *DB) DeleteSessionToken(sessionToken string) error {
-	query := `DELETE FROM sessions WHERE session_token = ?`
+	query := `DELETE FROM sessions WHERE session_token = $1`
 	_, err := db.pool.Exec(context.Background(), query, sessionToken)
 	if err != nil {
 		log.Error.Println(err)
