@@ -21,7 +21,7 @@ func NewServeMux(db *db.DB) *ServeMux {
 
 	mux.Handle("/{$}", http.NotFoundHandler())
 	mux.Handle("/feed/{$}", &mux.feedHandler)
-	mux.Handle("/session/{$}", &mux.feedHandler)
+	mux.Handle("/session/{$}", &mux.sessionHandler)
 
 	return &mux
 }
