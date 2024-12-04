@@ -3,11 +3,12 @@ package main
 import (
 	"os"
 
+	"morbo/context"
 	"morbo/server"
 )
 
 func main() {
-	err := server.Main(os.Args[1:])
+	err := server.Main(context.Background(), os.Args[1:])
 	if err != nil {
 		os.Exit(1)
 	}

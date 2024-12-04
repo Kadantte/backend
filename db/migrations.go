@@ -44,4 +44,14 @@ var migrations = []migration{
 			UPDATE schema_version SET version = 3;
 		`,
 	},
+	{
+		version: 4,
+		sql: `
+			ALTER TABLE sessions ADD COLUMN last_access TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW();
+
+			CREATE INDEX sessions_last_access_index ON sessions (last_access);
+
+			UPDATE schema_version SET version = 4;
+		`,
+	},
 }
