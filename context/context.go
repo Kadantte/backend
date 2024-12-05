@@ -3,6 +3,7 @@ package context
 import (
 	"context"
 	"sync"
+	"time"
 )
 
 type Context = context.Context
@@ -14,6 +15,10 @@ func Background() Context {
 
 func WithCancel(parent Context) (Context, CancelFunc) {
 	return context.WithCancel(parent)
+}
+
+func WithTimeout(parent Context, timeout time.Duration) (Context, CancelFunc) {
+	return context.WithTimeout(parent, timeout)
 }
 
 type waitGroupKeyType int
