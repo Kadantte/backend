@@ -11,6 +11,22 @@ import (
 	"morbo/log"
 )
 
+func GetSessionToken(writer http.ResponseWriter, request *http.Request) (string, error) {
+	authHeader := request.Header.Get("Authorization")
+	if authHeader == "" {
+		writer.WriteHeader(http.StatusUnauthorized)
+		return "", errors.Done
+	}
+
+	parts := strings.Split(authHeader, " ")
+	if len(parts) != 2 || parts[0] != "Bearer" {
+		writer.WriteHeader(http.StatusUnauthorized)
+		return "", errors.Done
+	}
+
+	return parts[1], nil
+}
+
 type sessionHandler struct {
 	db *db.DB
 }
@@ -59,21 +75,12 @@ func (handler *sessionHandler) handlePost(writer http.ResponseWriter, request *h
 }
 
 func (handler *sessionHandler) handleDelete(writer http.ResponseWriter, request *http.Request) error {
-	authHeader := request.Header.Get("Authorization")
-	if authHeader == "" {
-		writer.WriteHeader(http.StatusUnauthorized)
-		return nil
-	}
-
-	parts := strings.Split(authHeader, " ")
-	if len(parts) != 2 || parts[0] != "Bearer" {
-		writer.WriteHeader(http.StatusUnauthorized)
+	sessionToken, err := GetSessionToken(writer, request)
+	if err == errors.Done {
 		return nil
 	}
 
 	writer.WriteHeader(http.StatusOK)
-
-	sessionToken := parts[1]
 	return handler.db.DeleteSessionToken(sessionToken)
 }
 

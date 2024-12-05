@@ -14,6 +14,17 @@ type feedHandler struct {
 }
 
 func (handler *feedHandler) handlePost(writer http.ResponseWriter, request *http.Request) error {
+	sessionToken, err := GetSessionToken(writer, request)
+	if err == errors.Done {
+		return nil
+	}
+
+	_, statusCode, err := handler.db.AuthenticateBySessionToken(sessionToken)
+	if err != nil {
+		Error(writer, "failed to authenticate the user", statusCode)
+		return errors.Error
+	}
+
 	type RequestBody struct {
 		URL string `json:"url"`
 	}
@@ -41,7 +52,7 @@ func (handler *feedHandler) handlePost(writer http.ResponseWriter, request *http
 }
 
 func (handler *feedHandler) handleOptions(writer http.ResponseWriter, _ *http.Request) {
-	writer.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	writer.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
 	writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
 	writer.WriteHeader(http.StatusOK)
 }
