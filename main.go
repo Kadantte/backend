@@ -13,8 +13,14 @@ import (
 func main() {
 	ctx, cancel := context.WithCancel(context.WithWaitGroup(context.Background()))
 
-	sigint := make(chan os.Signal, 1)
-	signal.Notify(sigint, syscall.SIGTERM, os.Interrupt)
+	sigchan := make(chan os.Signal, 1)
+	signal.Notify(
+		sigchan,
+		syscall.SIGHUP,
+		syscall.SIGINT,
+		syscall.SIGTERM,
+		syscall.SIGQUIT,
+	)
 
 	server, err := server.Run(ctx)
 	if err != nil {
@@ -23,7 +29,7 @@ func main() {
 	}
 
 	select {
-	case <-sigint:
+	case <-sigchan:
 		print("\r")
 	}
 
