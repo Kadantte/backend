@@ -15,15 +15,15 @@ type feedHandler struct {
 
 func (handler *feedHandler) handlePost(conn *Connection) error {
 	sessionToken, err := conn.GetSessionToken()
-	if err == errors.Done {
+	if err != nil {
 		log.Error.Println("failed to get the session token")
-		return nil
+		return errors.Error
 	}
 
 	_, err = conn.AuthenticateViaSessionToken(sessionToken)
-	if err == errors.Done {
+	if err != nil {
 		log.Error.Println("failed to authenticate by the session token")
-		return err
+		return errors.Error
 	}
 
 	type RequestBody struct {

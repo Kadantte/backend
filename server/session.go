@@ -27,18 +27,18 @@ func (conn *Connection) AuthenticateViaCredentials(credentials Credentials) (use
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			conn.Error("no such user found", http.StatusUnauthorized)
-			return -1, errors.Done
+			return -1, errors.Error
 		}
 		log.Error.Println(err)
 		conn.Error("failed to authenticate via credentials", http.StatusInternalServerError)
-		return -1, errors.Done
+		return -1, errors.Error
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(credentials.Password))
 	if err != nil {
 		log.Error.Println(err)
 		conn.Error("password doesn't match", http.StatusUnauthorized)
-		return -1, errors.Done
+		return -1, errors.Error
 	}
 
 	return userID, nil
@@ -55,7 +55,7 @@ func (conn *Connection) AuthenticateViaSessionToken(sessionToken string) (userID
 				"unauthorized",
 				http.StatusUnauthorized,
 			)
-			return -1, errors.Done
+			return -1, errors.Error
 		}
 		log.Error.Println(err)
 		conn.DistinctError(
@@ -63,7 +63,7 @@ func (conn *Connection) AuthenticateViaSessionToken(sessionToken string) (userID
 			"internal server error",
 			http.StatusInternalServerError,
 		)
-		return -1, errors.Done
+		return -1, errors.Error
 	}
 
 	query = `UPDATE sessions SET last_access = NOW() WHERE session_token = $1`
@@ -85,7 +85,7 @@ func (conn *Connection) GenerateSessionToken(userID int) (sessionToken string, e
 			"internal server error",
 			http.StatusInternalServerError,
 		)
-		return "", errors.Done
+		return "", errors.Error
 	}
 	sessionToken = base64.RawURLEncoding.EncodeToString(byteSessionToken)
 
@@ -98,7 +98,7 @@ func (conn *Connection) GenerateSessionToken(userID int) (sessionToken string, e
 			"internal server error",
 			http.StatusInternalServerError,
 		)
-		return "", errors.Done
+		return "", errors.Error
 	}
 
 	return sessionToken, nil
@@ -120,13 +120,13 @@ func (conn *Connection) GetSessionToken() (string, error) {
 	authHeader := conn.request.Header.Get("Authorization")
 	if authHeader == "" {
 		conn.writer.WriteHeader(http.StatusUnauthorized)
-		return "", errors.Done
+		return "", errors.Error
 	}
 
 	parts := strings.Split(authHeader, " ")
 	if len(parts) != 2 || parts[0] != "Bearer" {
 		conn.writer.WriteHeader(http.StatusUnauthorized)
-		return "", errors.Done
+		return "", errors.Error
 	}
 
 	return parts[1], nil
@@ -153,13 +153,13 @@ func (handler *sessionHandler) handlePost(conn *Connection) error {
 	}
 
 	userID, err := conn.AuthenticateViaCredentials(credentials)
-	if err == errors.Done {
+	if err != nil {
 		log.Error.Println("failed to authenticate via credentials")
 		return err
 	}
 
 	sessionToken, err := conn.GenerateSessionToken(userID)
-	if err == errors.Done {
+	if err != nil {
 		log.Error.Println("failed to generate a session token")
 		return err
 	}
@@ -175,8 +175,9 @@ func (handler *sessionHandler) handlePost(conn *Connection) error {
 
 func (handler *sessionHandler) handleDelete(conn *Connection) error {
 	sessionToken, err := conn.GetSessionToken()
-	if err == errors.Done {
-		return nil
+	if err != nil {
+		log.Error.Println("failed to get the session token")
+		return errors.Error
 	}
 
 	conn.writer.WriteHeader(http.StatusOK)
