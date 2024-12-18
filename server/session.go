@@ -2,7 +2,6 @@ package server
 
 import (
 	"crypto/rand"
-	"database/sql"
 	"encoding/base64"
 	"encoding/json"
 	"io"
@@ -49,7 +48,7 @@ func (conn *Connection) AuthenticateViaSessionToken(sessionToken string) (userID
 	row := conn.db.Pool.QueryRow(context.Background(), query, sessionToken)
 	err = row.Scan(&userID)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			conn.DistinctError(
 				"no such session token found",
 				"unauthorized",
