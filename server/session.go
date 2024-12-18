@@ -118,13 +118,13 @@ func (conn *Connection) DeleteSessionToken(sessionToken string) error {
 func (conn *Connection) GetSessionToken() (string, error) {
 	authHeader := conn.request.Header.Get("Authorization")
 	if authHeader == "" {
-		conn.writer.WriteHeader(http.StatusUnauthorized)
+		conn.Error("empty Authorization header", http.StatusUnauthorized)
 		return "", errors.Error
 	}
 
 	parts := strings.Split(authHeader, " ")
 	if len(parts) != 2 || parts[0] != "Bearer" {
-		conn.writer.WriteHeader(http.StatusUnauthorized)
+		conn.Error("invalid Authorization header", http.StatusUnauthorized)
 		return "", errors.Error
 	}
 
