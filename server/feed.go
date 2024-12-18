@@ -13,16 +13,17 @@ type feedHandler struct {
 	db *db.DB
 }
 
-func (handler *feedHandler) handlePost(writer http.ResponseWriter, request *http.Request) error {
-	sessionToken, err := GetSessionToken(writer, request)
+func (handler *feedHandler) handlePost(conn *Connection) error {
+	sessionToken, err := conn.GetSessionToken()
 	if err == errors.Done {
+		log.Error.Println("failed to get the session token")
 		return nil
 	}
 
-	_, statusCode, err := handler.db.AuthenticateBySessionToken(sessionToken)
-	if err != nil {
-		Error(writer, "failed to authenticate the user", statusCode)
-		return errors.Error
+	_, err = conn.AuthenticateViaSessionToken(sessionToken)
+	if err == errors.Done {
+		log.Error.Println("failed to authenticate by the session token")
+		return err
 	}
 
 	type RequestBody struct {
@@ -30,23 +31,23 @@ func (handler *feedHandler) handlePost(writer http.ResponseWriter, request *http
 	}
 
 	var requestBody RequestBody
-	if err := json.NewDecoder(request.Body).Decode(&requestBody); err != nil {
+	if err := json.NewDecoder(conn.request.Body).Decode(&requestBody); err != nil {
 		log.Error.Println(err)
-		Error(writer, "failed to decode the request body", http.StatusBadRequest)
+		conn.Error("failed to decode the request body", http.StatusBadRequest)
 		return errors.Error
 	}
 
-	rss, statusCode, err := parseRSS(requestBody.URL)
+	rss, err := conn.parseRSS(requestBody.URL)
 	if err != nil {
-		Error(writer, "failed to parse the RSS feed", statusCode)
+		log.Error.Println("failed to parse the RSS feed")
 		return errors.Error
 	}
 
 	type ResponseBody struct {
 		Title string `json:"title"`
 	}
-	writer.WriteHeader(http.StatusOK)
-	json.NewEncoder(writer).Encode(ResponseBody{rss.Channel.Title})
+	conn.writer.WriteHeader(http.StatusOK)
+	json.NewEncoder(conn.writer).Encode(ResponseBody{rss.Channel.Title})
 
 	return nil
 }
@@ -63,10 +64,12 @@ func (handler *feedHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 	}
 	writer.Header().Set("Vary", "Origin")
 
+	conn := NewConnection(handler.db, writer, request)
+
 	log.Info.Printf("%s %s %s\n", request.RemoteAddr, request.Method, request.URL.Path)
 	switch request.Method {
 	case http.MethodPost:
-		if err := handler.handlePost(writer, request); err != nil {
+		if err := handler.handlePost(conn); err != nil {
 			log.Error.Println("failed to handle the POST request to \"/feed/\"")
 		}
 	case http.MethodOptions:

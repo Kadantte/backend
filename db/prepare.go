@@ -72,13 +72,13 @@ func (db *DB) connect() error {
 		return errors.Error
 	}
 
-	db.pool = pool
+	db.Pool = pool
 	return nil
 }
 
 func (db *DB) getCurrentVersion() (int, error) {
 	var version int
-	row := db.pool.QueryRow(context.Background(), "SELECT version FROM schema_version LIMIT 1")
+	row := db.Pool.QueryRow(context.Background(), "SELECT version FROM schema_version LIMIT 1")
 	if err := row.Scan(&version); err != nil {
 		log.Info.Println("assuming the version of the database schema to be 0")
 		return 0, nil
@@ -99,7 +99,7 @@ func (db *DB) migrate() error {
 	for _, migration := range migrations {
 		if migration.version > currentVersion {
 			log.Info.Printf("applying migration to database schema version %d\n", migration.version)
-			if _, err := db.pool.Exec(ctx, migration.sql); err != nil {
+			if _, err := db.Pool.Exec(ctx, migration.sql); err != nil {
 				log.Error.Printf("failed to apply migration to database schema version %d", migration.version)
 				return errors.Error
 			}
@@ -110,5 +110,5 @@ func (db *DB) migrate() error {
 }
 
 func (db *DB) Close() {
-	db.pool.Close()
+	db.Pool.Close()
 }
