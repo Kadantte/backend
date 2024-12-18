@@ -180,7 +180,14 @@ func (handler *sessionHandler) handleDelete(conn *Connection) error {
 	}
 
 	conn.writer.WriteHeader(http.StatusOK)
-	return conn.DeleteSessionToken(sessionToken)
+
+	err = conn.DeleteSessionToken(sessionToken)
+	if err != nil {
+		log.Error.Println("failed to delete the session token")
+		return errors.Error
+	}
+
+	return nil
 }
 
 func (handler *sessionHandler) handleOptions(writer http.ResponseWriter, _ *http.Request) {
