@@ -3,7 +3,9 @@ package server
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
+	"morbo/context"
 	"morbo/db"
 	"morbo/errors"
 	"morbo/log"
@@ -13,14 +15,14 @@ type feedHandler struct {
 	db *db.DB
 }
 
-func (handler *feedHandler) handlePost(conn *Connection) error {
+func (handler *feedHandler) handlePost(ctx context.Context, conn *Connection) error {
 	sessionToken, err := conn.GetSessionToken()
 	if err != nil {
 		log.Error.Println("failed to get the session token")
 		return errors.Error
 	}
 
-	_, err = conn.AuthenticateViaSessionToken(sessionToken)
+	_, err = conn.AuthenticateViaSessionToken(ctx, sessionToken)
 	if err != nil {
 		log.Error.Println("failed to authenticate by the session token")
 		return errors.Error
@@ -59,6 +61,9 @@ func (handler *feedHandler) handleOptions(writer http.ResponseWriter, _ *http.Re
 }
 
 func (handler *feedHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
 	if origin := request.Header.Get("Origin"); origin != "" {
 		writer.Header().Set("Access-Control-Allow-Origin", origin)
 	}
@@ -69,7 +74,7 @@ func (handler *feedHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 	log.Info.Printf("%s %s %s\n", request.RemoteAddr, request.Method, request.URL.Path)
 	switch request.Method {
 	case http.MethodPost:
-		if err := handler.handlePost(conn); err != nil {
+		if err := handler.handlePost(ctx, conn); err != nil {
 			log.Error.Println("failed to handle the POST request to \"/feed/\"")
 		}
 	case http.MethodOptions:

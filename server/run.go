@@ -7,7 +7,7 @@ import (
 )
 
 func Run(ctx context.Context) (*Server, error) {
-	server, err := NewServer("0.0.0.0", 80)
+	server, err := NewServer(ctx, "0.0.0.0", 80)
 	if err != nil {
 		log.Error.Println("failed to create the server")
 		return nil, errors.Error

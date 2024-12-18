@@ -11,15 +11,15 @@ import (
 	"morbo/log"
 )
 
-func Prepare() (*DB, error) {
+func Prepare(ctx context.Context) (*DB, error) {
 	db := DB{}
 
-	if err := db.connect(); err != nil {
+	if err := db.connect(ctx); err != nil {
 		log.Error.Println("failed to connect to the database")
 		return nil, errors.Error
 	}
 
-	if err := db.migrate(); err != nil {
+	if err := db.migrate(ctx); err != nil {
 		log.Error.Println("failed to migrate the database")
 		return nil, errors.Error
 	}
@@ -27,9 +27,7 @@ func Prepare() (*DB, error) {
 	return &db, nil
 }
 
-func (db *DB) connect() error {
-	ctx := context.Background()
-
+func (db *DB) connect(ctx context.Context) error {
 	dbHost := os.Getenv("MORBO_DB_HOST")
 	if dbHost == "" {
 		dbHost = "localhost"
@@ -76,9 +74,9 @@ func (db *DB) connect() error {
 	return nil
 }
 
-func (db *DB) getCurrentVersion() (int, error) {
+func (db *DB) getCurrentVersion(ctx context.Context) (int, error) {
 	var version int
-	row := db.Pool.QueryRow(context.Background(), "SELECT version FROM schema_version LIMIT 1")
+	row := db.Pool.QueryRow(ctx, "SELECT version FROM schema_version LIMIT 1")
 	if err := row.Scan(&version); err != nil {
 		log.Info.Println("assuming the version of the database schema to be 0")
 		return 0, nil
@@ -86,10 +84,8 @@ func (db *DB) getCurrentVersion() (int, error) {
 	return version, nil
 }
 
-func (db *DB) migrate() error {
-	ctx := context.Background()
-
-	currentVersion, err := db.getCurrentVersion()
+func (db *DB) migrate(ctx context.Context) error {
+	currentVersion, err := db.getCurrentVersion(ctx)
 	if err != nil {
 		log.Error.Println("failed to get the current schema version")
 		return errors.Error

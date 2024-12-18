@@ -17,10 +17,10 @@ type Server struct {
 	db *db.DB
 }
 
-func NewServer(ip string, port int) (*Server, error) {
+func NewServer(ctx context.Context, ip string, port int) (*Server, error) {
 	var server Server
 
-	db, err := db.Prepare()
+	db, err := db.Prepare(ctx)
 	if err != nil {
 		log.Error.Println("failed to prepare the database")
 		return nil, errors.Error

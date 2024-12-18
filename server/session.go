@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"morbo/context"
 	"morbo/db"
@@ -17,11 +18,11 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (conn *Connection) AuthenticateViaCredentials(credentials Credentials) (userID int, err error) {
+func (conn *Connection) AuthenticateViaCredentials(ctx context.Context, credentials Credentials) (userID int, err error) {
 	var hashedPassword string
 
 	query := `SELECT id, password FROM users WHERE username = $1`
-	row := conn.db.Pool.QueryRow(context.Background(), query, credentials.Username)
+	row := conn.db.Pool.QueryRow(ctx, query, credentials.Username)
 	err = row.Scan(&userID, &hashedPassword)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -43,9 +44,9 @@ func (conn *Connection) AuthenticateViaCredentials(credentials Credentials) (use
 	return userID, nil
 }
 
-func (conn *Connection) AuthenticateViaSessionToken(sessionToken string) (userID int, err error) {
+func (conn *Connection) AuthenticateViaSessionToken(ctx context.Context, sessionToken string) (userID int, err error) {
 	query := `SELECT user_id FROM sessions WHERE session_token = $1`
-	row := conn.db.Pool.QueryRow(context.Background(), query, sessionToken)
+	row := conn.db.Pool.QueryRow(ctx, query, sessionToken)
 	err = row.Scan(&userID)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -66,7 +67,7 @@ func (conn *Connection) AuthenticateViaSessionToken(sessionToken string) (userID
 	}
 
 	query = `UPDATE sessions SET last_access = NOW() WHERE session_token = $1`
-	_, err = conn.db.Pool.Exec(context.Background(), query, sessionToken)
+	_, err = conn.db.Pool.Exec(ctx, query, sessionToken)
 	if err != nil {
 		log.Error.Println(err)
 		log.Error.Println("failed to update the last access time of the session token")
@@ -75,7 +76,7 @@ func (conn *Connection) AuthenticateViaSessionToken(sessionToken string) (userID
 	return userID, nil
 }
 
-func (conn *Connection) GenerateSessionToken(userID int) (sessionToken string, err error) {
+func (conn *Connection) GenerateSessionToken(ctx context.Context, userID int) (sessionToken string, err error) {
 	byteSessionToken := make([]byte, 40)
 	if _, err := rand.Read(byteSessionToken); err != nil {
 		log.Error.Println(err)
@@ -89,7 +90,7 @@ func (conn *Connection) GenerateSessionToken(userID int) (sessionToken string, e
 	sessionToken = base64.RawURLEncoding.EncodeToString(byteSessionToken)
 
 	query := `INSERT INTO sessions (session_token, user_id) VALUES ($1, $2)`
-	_, err = conn.db.Pool.Exec(context.Background(), query, sessionToken, userID)
+	_, err = conn.db.Pool.Exec(ctx, query, sessionToken, userID)
 	if err != nil {
 		log.Error.Println(err)
 		conn.DistinctError(
@@ -103,9 +104,9 @@ func (conn *Connection) GenerateSessionToken(userID int) (sessionToken string, e
 	return sessionToken, nil
 }
 
-func (conn *Connection) DeleteSessionToken(sessionToken string) error {
+func (conn *Connection) DeleteSessionToken(ctx context.Context, sessionToken string) error {
 	query := `DELETE FROM sessions WHERE session_token = $1`
-	_, err := conn.db.Pool.Exec(context.Background(), query, sessionToken)
+	_, err := conn.db.Pool.Exec(ctx, query, sessionToken)
 	if err != nil {
 		log.Error.Println(err)
 		log.Error.Println("failed to delete a session token")
@@ -135,7 +136,7 @@ type sessionHandler struct {
 	db *db.DB
 }
 
-func (handler *sessionHandler) handlePost(conn *Connection) error {
+func (handler *sessionHandler) handlePost(ctx context.Context, conn *Connection) error {
 	body, err := io.ReadAll(conn.request.Body)
 	if err != nil {
 		log.Error.Println(err)
@@ -151,13 +152,13 @@ func (handler *sessionHandler) handlePost(conn *Connection) error {
 		return errors.Error
 	}
 
-	userID, err := conn.AuthenticateViaCredentials(credentials)
+	userID, err := conn.AuthenticateViaCredentials(ctx, credentials)
 	if err != nil {
 		log.Error.Println("failed to authenticate via credentials")
 		return err
 	}
 
-	sessionToken, err := conn.GenerateSessionToken(userID)
+	sessionToken, err := conn.GenerateSessionToken(ctx, userID)
 	if err != nil {
 		log.Error.Println("failed to generate a session token")
 		return err
@@ -172,7 +173,7 @@ func (handler *sessionHandler) handlePost(conn *Connection) error {
 	return nil
 }
 
-func (handler *sessionHandler) handleDelete(conn *Connection) error {
+func (handler *sessionHandler) handleDelete(ctx context.Context, conn *Connection) error {
 	sessionToken, err := conn.GetSessionToken()
 	if err != nil {
 		log.Error.Println("failed to get the session token")
@@ -181,7 +182,7 @@ func (handler *sessionHandler) handleDelete(conn *Connection) error {
 
 	conn.writer.WriteHeader(http.StatusOK)
 
-	err = conn.DeleteSessionToken(sessionToken)
+	err = conn.DeleteSessionToken(ctx, sessionToken)
 	if err != nil {
 		log.Error.Println("failed to delete the session token")
 		return errors.Error
@@ -197,6 +198,9 @@ func (handler *sessionHandler) handleOptions(writer http.ResponseWriter, _ *http
 }
 
 func (handler *sessionHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
 	if origin := request.Header.Get("Origin"); origin != "" {
 		writer.Header().Set("Access-Control-Allow-Origin", origin)
 	}
@@ -207,11 +211,11 @@ func (handler *sessionHandler) ServeHTTP(writer http.ResponseWriter, request *ht
 	log.Info.Printf("%s %s\n", request.Method, request.URL.Path)
 	switch request.Method {
 	case http.MethodPost:
-		if err := handler.handlePost(conn); err != nil {
+		if err := handler.handlePost(ctx, conn); err != nil {
 			log.Error.Println("failed to handle the POST request to \"/session/\"")
 		}
 	case http.MethodDelete:
-		if err := handler.handleDelete(conn); err != nil {
+		if err := handler.handleDelete(ctx, conn); err != nil {
 			log.Error.Println("failed to handle the DELETE request to \"/session/\"")
 		}
 	case http.MethodOptions:
