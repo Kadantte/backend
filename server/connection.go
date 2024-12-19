@@ -24,11 +24,6 @@ func NewConnection(db *db.DB, writer http.ResponseWriter, request *http.Request)
 	return conn
 }
 
-type Credentials struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
-
 func (conn *Connection) Error(message string, statusCode int) {
 	conn.DistinctError(message, message, statusCode)
 }
