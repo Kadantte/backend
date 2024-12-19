@@ -64,11 +64,6 @@ func (handler *feedHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	if origin := request.Header.Get("Origin"); origin != "" {
-		writer.Header().Set("Access-Control-Allow-Origin", origin)
-	}
-	writer.Header().Set("Vary", "Origin")
-
 	conn := NewConnection(handler.db, writer, request)
 
 	log.Info.Printf("%s %s %s\n", request.RemoteAddr, request.Method, request.URL.Path)

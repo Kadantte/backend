@@ -14,7 +14,14 @@ type Connection struct {
 }
 
 func NewConnection(db *db.DB, writer http.ResponseWriter, request *http.Request) *Connection {
-	return &Connection{db, writer, request}
+	conn := &Connection{db, writer, request}
+
+	if origin := conn.request.Header.Get("Origin"); origin != "" {
+		conn.writer.Header().Set("Access-Control-Allow-Origin", origin)
+	}
+	conn.writer.Header().Set("Vary", "Origin")
+
+	return conn
 }
 
 type Credentials struct {

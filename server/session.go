@@ -201,11 +201,6 @@ func (handler *sessionHandler) ServeHTTP(writer http.ResponseWriter, request *ht
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	if origin := request.Header.Get("Origin"); origin != "" {
-		writer.Header().Set("Access-Control-Allow-Origin", origin)
-	}
-	writer.Header().Set("Vary", "Origin")
-
 	conn := NewConnection(handler.db, writer, request)
 
 	log.Info.Printf("%s %s\n", request.Method, request.URL.Path)
