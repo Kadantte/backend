@@ -25,7 +25,7 @@ func (db *DB) cleanupStaleSessions(ctx context.Context) error {
 	return nil
 }
 
-func (db *DB) StartPeriodicStaleSessionsCleanup(ctx context.Context, interval time.Duration) {
+func (db *DB) StartPeriodicStaleSessionsCleanup(ctx context.Context) {
 	wg := context.GetWaitGroup(ctx)
 
 	log.Info.Println("starting periodic stale sessions cleanup")
@@ -34,7 +34,7 @@ func (db *DB) StartPeriodicStaleSessionsCleanup(ctx context.Context, interval ti
 	go func() {
 		defer wg.Done()
 
-		ticker := time.NewTicker(interval)
+		ticker := time.NewTicker(time.Hour)
 		defer ticker.Stop()
 
 		for {

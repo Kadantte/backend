@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
@@ -25,7 +24,7 @@ func Prepare(ctx context.Context) (*DB, error) {
 		return nil, errors.Error
 	}
 
-	db.StartPeriodicStaleSessionsCleanup(ctx, time.Hour)
+	db.StartPeriodicStaleSessionsCleanup(ctx)
 
 	return &db, nil
 }
