@@ -28,10 +28,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	select {
-	case <-sigchan:
-		print("\r")
-	}
+	<-sigchan
+	print("\r")
 
 	server.Shutdown(ctx)
 
