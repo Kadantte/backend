@@ -11,7 +11,8 @@ import (
 )
 
 func main() {
-	ctx, cancel := context.WithCancel(context.WithWaitGroup(context.Background()))
+	ctx, cancel := context.WithWaitGroup(context.Background())
+	defer cancel()
 
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(
@@ -32,7 +33,4 @@ func main() {
 	print("\r")
 
 	server.Shutdown(ctx)
-
-	cancel()
-	context.GetWaitGroup(ctx).Wait()
 }
