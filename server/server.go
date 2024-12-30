@@ -43,8 +43,6 @@ func (server *Server) ListenAndServe(ctx context.Context) error {
 	}
 	log.Info.Printf("listening at %v", server.Addr)
 
-	server.db.StartPeriodicStaleSessionsCleanup(ctx, time.Hour)
-
 	wg.Add(1)
 	go func() {
 		defer wg.Done()

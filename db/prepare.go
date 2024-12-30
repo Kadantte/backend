@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
@@ -23,6 +24,8 @@ func Prepare(ctx context.Context) (*DB, error) {
 		log.Error.Println("failed to migrate the database")
 		return nil, errors.Error
 	}
+
+	db.StartPeriodicStaleSessionsCleanup(ctx, time.Hour)
 
 	return &db, nil
 }
