@@ -7,6 +7,11 @@ import (
 	"morbo/db"
 )
 
+type baseHandler struct {
+	ctx context.Context
+	db  *db.DB
+}
+
 type ServeMux struct {
 	http.ServeMux
 
@@ -15,9 +20,10 @@ type ServeMux struct {
 }
 
 func NewServeMux(ctx context.Context, db *db.DB) *ServeMux {
+	baseHandler := baseHandler{ctx, db}
 	mux := ServeMux{
-		feedHandler:    feedHandler{ctx, db},
-		sessionHandler: sessionHandler{ctx, db},
+		feedHandler:    feedHandler{baseHandler},
+		sessionHandler: sessionHandler{baseHandler},
 	}
 
 	mux.Handle("/{$}", http.NotFoundHandler())

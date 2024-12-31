@@ -20,13 +20,12 @@ type Connection struct {
 }
 
 func NewConnection(
-	ctx context.Context,
-	db *db.DB,
+	handler *baseHandler,
 	writer http.ResponseWriter,
 	request *http.Request,
 ) *Connection {
-	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
-	conn := &Connection{ctx, db, writer, request, cancel}
+	ctx, cancel := context.WithTimeout(handler.ctx, 15*time.Second)
+	conn := &Connection{ctx, handler.db, writer, request, cancel}
 
 	if origin := conn.request.Header.Get("Origin"); origin != "" {
 		conn.writer.Header().Set("Access-Control-Allow-Origin", origin)

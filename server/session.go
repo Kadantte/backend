@@ -8,8 +8,6 @@ import (
 	"net/http"
 	"strings"
 
-	"morbo/context"
-	"morbo/db"
 	"morbo/errors"
 	"morbo/log"
 
@@ -137,8 +135,7 @@ func (conn *Connection) GetSessionToken() (string, error) {
 }
 
 type sessionHandler struct {
-	ctx context.Context
-	db  *db.DB
+	baseHandler
 }
 
 func (handler *sessionHandler) handlePost(conn *Connection) error {
@@ -203,7 +200,7 @@ func (handler *sessionHandler) handleOptions(writer http.ResponseWriter, _ *http
 }
 
 func (handler *sessionHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	conn := NewConnection(handler.ctx, handler.db, writer, request)
+	conn := NewConnection(&handler.baseHandler, writer, request)
 	defer conn.Disconnect()
 
 	log.Info.Printf("%s %s\n", request.Method, request.URL.Path)

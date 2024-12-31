@@ -4,15 +4,12 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"morbo/context"
-	"morbo/db"
 	"morbo/errors"
 	"morbo/log"
 )
 
 type feedHandler struct {
-	ctx context.Context
-	db  *db.DB
+	baseHandler
 }
 
 func (handler *feedHandler) handlePost(conn *Connection) error {
@@ -61,7 +58,7 @@ func (handler *feedHandler) handleOptions(writer http.ResponseWriter, _ *http.Re
 }
 
 func (handler *feedHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	conn := NewConnection(handler.ctx, handler.db, writer, request)
+	conn := NewConnection(&handler.baseHandler, writer, request)
 	defer conn.Disconnect()
 
 	log.Info.Printf("%s %s %s\n", request.RemoteAddr, request.Method, request.URL.Path)
