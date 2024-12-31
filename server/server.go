@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"time"
 
 	"morbo/context"
 	"morbo/db"
@@ -58,9 +57,6 @@ func (server *Server) ListenAndServe(ctx context.Context) error {
 }
 
 func (server *Server) Shutdown(ctx context.Context) {
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-
 	log.Info.Println("server shutdown initiated")
 	defer log.Info.Println("server shutdown finished")
 
