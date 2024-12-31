@@ -27,6 +27,8 @@ func NewConnection(
 	ctx, cancel := context.WithTimeout(handler.ctx, 15*time.Second)
 	conn := &Connection{ctx, handler.db, writer, request, cancel}
 
+	context.GetWaitGroup(conn.ctx).Add(1)
+
 	if origin := conn.request.Header.Get("Origin"); origin != "" {
 		conn.writer.Header().Set("Access-Control-Allow-Origin", origin)
 	}
@@ -47,4 +49,5 @@ func (conn *Connection) DistinctError(serverMessage string, userMessage string, 
 
 func (conn *Connection) Disconnect() {
 	conn.cancelContext()
+	context.GetWaitGroup(conn.ctx).Done()
 }
