@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"time"
 
 	"morbo/context"
 	"morbo/db"
@@ -14,10 +15,18 @@ type Connection struct {
 	db      *db.DB
 	writer  http.ResponseWriter
 	request *http.Request
+
+	cancelContext context.CancelFunc
 }
 
-func NewConnection(ctx context.Context, db *db.DB, writer http.ResponseWriter, request *http.Request) *Connection {
-	conn := &Connection{ctx, db, writer, request}
+func NewConnection(
+	ctx context.Context,
+	db *db.DB,
+	writer http.ResponseWriter,
+	request *http.Request,
+) *Connection {
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	conn := &Connection{ctx, db, writer, request, cancel}
 
 	if origin := conn.request.Header.Get("Origin"); origin != "" {
 		conn.writer.Header().Set("Access-Control-Allow-Origin", origin)
@@ -35,4 +44,8 @@ func (conn *Connection) DistinctError(serverMessage string, userMessage string, 
 	log.Error.Println(serverMessage)
 	conn.writer.WriteHeader(statusCode)
 	fmt.Fprint(conn.writer, userMessage)
+}
+
+func (conn *Connection) Disconnect() {
+	conn.cancelContext()
 }

@@ -3,7 +3,6 @@ package server
 import (
 	"encoding/json"
 	"net/http"
-	"time"
 
 	"morbo/context"
 	"morbo/db"
@@ -62,10 +61,8 @@ func (handler *feedHandler) handleOptions(writer http.ResponseWriter, _ *http.Re
 }
 
 func (handler *feedHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	ctx, cancel := context.WithTimeout(handler.ctx, 15*time.Second)
-	defer cancel()
-
-	conn := NewConnection(ctx, handler.db, writer, request)
+	conn := NewConnection(handler.ctx, handler.db, writer, request)
+	defer conn.Disconnect()
 
 	log.Info.Printf("%s %s %s\n", request.RemoteAddr, request.Method, request.URL.Path)
 	switch request.Method {

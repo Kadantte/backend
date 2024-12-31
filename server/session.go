@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"time"
 
 	"morbo/context"
 	"morbo/db"
@@ -204,10 +203,8 @@ func (handler *sessionHandler) handleOptions(writer http.ResponseWriter, _ *http
 }
 
 func (handler *sessionHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	ctx, cancel := context.WithTimeout(handler.ctx, 15*time.Second)
-	defer cancel()
-
-	conn := NewConnection(ctx, handler.db, writer, request)
+	conn := NewConnection(handler.ctx, handler.db, writer, request)
+	defer conn.Disconnect()
 
 	log.Info.Printf("%s %s\n", request.Method, request.URL.Path)
 	switch request.Method {
