@@ -16,14 +16,14 @@ type feedHandler struct {
 	db  *db.DB
 }
 
-func (handler *feedHandler) handlePost(ctx context.Context, conn *Connection) error {
+func (handler *feedHandler) handlePost(conn *Connection) error {
 	sessionToken, err := conn.GetSessionToken()
 	if err != nil {
 		log.Error.Println("failed to get the session token")
 		return errors.Error
 	}
 
-	_, err = conn.AuthenticateViaSessionToken(ctx, sessionToken)
+	_, err = conn.AuthenticateViaSessionToken(sessionToken)
 	if err != nil {
 		log.Error.Println("failed to authenticate by the session token")
 		return errors.Error
@@ -65,12 +65,12 @@ func (handler *feedHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 	ctx, cancel := context.WithTimeout(handler.ctx, 15*time.Second)
 	defer cancel()
 
-	conn := NewConnection(handler.db, writer, request)
+	conn := NewConnection(ctx, handler.db, writer, request)
 
 	log.Info.Printf("%s %s %s\n", request.RemoteAddr, request.Method, request.URL.Path)
 	switch request.Method {
 	case http.MethodPost:
-		if err := handler.handlePost(ctx, conn); err != nil {
+		if err := handler.handlePost(conn); err != nil {
 			log.Error.Println("failed to handle the POST request to \"/feed/\"")
 		}
 	case http.MethodOptions:

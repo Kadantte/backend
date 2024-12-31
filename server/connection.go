@@ -2,19 +2,22 @@ package server
 
 import (
 	"fmt"
+
+	"morbo/context"
 	"morbo/db"
 	"morbo/log"
 	"net/http"
 )
 
 type Connection struct {
+	ctx     context.Context
 	db      *db.DB
 	writer  http.ResponseWriter
 	request *http.Request
 }
 
-func NewConnection(db *db.DB, writer http.ResponseWriter, request *http.Request) *Connection {
-	conn := &Connection{db, writer, request}
+func NewConnection(ctx context.Context, db *db.DB, writer http.ResponseWriter, request *http.Request) *Connection {
+	conn := &Connection{ctx, db, writer, request}
 
 	if origin := conn.request.Header.Get("Origin"); origin != "" {
 		conn.writer.Header().Set("Access-Control-Allow-Origin", origin)
