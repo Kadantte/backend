@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	"morbo/context"
 	"morbo/errors"
 	"morbo/log"
 
@@ -51,20 +52,23 @@ func (conn *Connection) AuthenticateViaSessionToken(sessionToken string) (userID
 	row := conn.db.Pool.QueryRow(conn.ctx, query, sessionToken)
 	err = row.Scan(&userID)
 	if err != nil {
-		if err == pgx.ErrNoRows {
+		switch err {
+		case pgx.ErrNoRows:
 			conn.DistinctError(
 				"no such session token found",
 				"unauthorized",
 				http.StatusUnauthorized,
 			)
-			return -1, errors.Error
+		case context.DeadlineExceed:
+			conn.Error("took too long to finish the request", http.StatusGatewayTimeout)
+		default:
+			log.Error.Println(err)
+			conn.DistinctError(
+				"failed to authenticate via session token",
+				"internal server error",
+				http.StatusInternalServerError,
+			)
 		}
-		log.Error.Println(err)
-		conn.DistinctError(
-			"failed to authenticate via session token",
-			"internal server error",
-			http.StatusInternalServerError,
-		)
 		return -1, errors.Error
 	}
 
