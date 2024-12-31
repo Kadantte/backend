@@ -12,7 +12,8 @@ import (
 )
 
 type feedHandler struct {
-	db *db.DB
+	ctx context.Context
+	db  *db.DB
 }
 
 func (handler *feedHandler) handlePost(ctx context.Context, conn *Connection) error {
@@ -61,7 +62,7 @@ func (handler *feedHandler) handleOptions(writer http.ResponseWriter, _ *http.Re
 }
 
 func (handler *feedHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(handler.ctx, 15*time.Second)
 	defer cancel()
 
 	conn := NewConnection(handler.db, writer, request)

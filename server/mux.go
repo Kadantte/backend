@@ -3,6 +3,7 @@ package server
 import (
 	"net/http"
 
+	"morbo/context"
 	"morbo/db"
 )
 
@@ -13,10 +14,10 @@ type ServeMux struct {
 	sessionHandler sessionHandler
 }
 
-func NewServeMux(db *db.DB) *ServeMux {
+func NewServeMux(ctx context.Context, db *db.DB) *ServeMux {
 	mux := ServeMux{
-		feedHandler:    feedHandler{db},
-		sessionHandler: sessionHandler{db},
+		feedHandler:    feedHandler{ctx, db},
+		sessionHandler: sessionHandler{ctx, db},
 	}
 
 	mux.Handle("/{$}", http.NotFoundHandler())

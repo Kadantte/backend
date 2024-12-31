@@ -27,7 +27,7 @@ func NewServer(ctx context.Context, ip string, port int) (*Server, error) {
 	}
 
 	server.Addr = fmt.Sprintf("%s:%d", ip, port)
-	server.Handler = NewServeMux(db)
+	server.Handler = NewServeMux(ctx, db)
 	server.db = db
 	return &server, nil
 }

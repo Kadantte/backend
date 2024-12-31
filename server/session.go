@@ -138,7 +138,8 @@ func (conn *Connection) GetSessionToken() (string, error) {
 }
 
 type sessionHandler struct {
-	db *db.DB
+	ctx context.Context
+	db  *db.DB
 }
 
 func (handler *sessionHandler) handlePost(ctx context.Context, conn *Connection) error {
@@ -203,7 +204,7 @@ func (handler *sessionHandler) handleOptions(writer http.ResponseWriter, _ *http
 }
 
 func (handler *sessionHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(handler.ctx, 15*time.Second)
 	defer cancel()
 
 	conn := NewConnection(handler.db, writer, request)
