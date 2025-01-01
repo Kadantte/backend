@@ -28,8 +28,8 @@ func (conn *Connection) AuthenticateViaCredentials(credentials Credentials) (use
 	var hashedPassword string
 
 	query := `SELECT id, password FROM users WHERE username = $1`
-	row := conn.db.Pool.QueryRow(conn.ctx, query, credentials.Username)
-	err = row.Scan(&userID, &hashedPassword)
+	row := conn.QueryRow(query, credentials.Username)
+	err = conn.ScanRow(row, &userID, &hashedPassword)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			conn.Error("no such user found", http.StatusUnauthorized)
@@ -56,8 +56,8 @@ func (conn *Connection) AuthenticateViaSessionToken(sessionToken string) (userID
 	}
 
 	query := `SELECT user_id FROM sessions WHERE session_token = $1`
-	row := conn.db.Pool.QueryRow(conn.ctx, query, sessionToken)
-	err = row.Scan(&userID)
+	row := conn.QueryRow(query, sessionToken)
+	err = conn.ScanRow(row, &userID)
 	if err != nil {
 		switch err {
 		case pgx.ErrNoRows:
@@ -78,7 +78,7 @@ func (conn *Connection) AuthenticateViaSessionToken(sessionToken string) (userID
 	}
 
 	query = `UPDATE sessions SET last_access = NOW() WHERE session_token = $1`
-	_, err = conn.db.Pool.Exec(conn.ctx, query, sessionToken)
+	err = conn.Exec(query, sessionToken)
 	if err != nil {
 		log.Error.Println(err)
 		log.Error.Println("failed to update the last access time of the session token")
@@ -105,7 +105,7 @@ func (conn *Connection) GenerateSessionToken(userID int) (sessionToken string, e
 	sessionToken = base64.RawURLEncoding.EncodeToString(byteSessionToken)
 
 	query := `INSERT INTO sessions (session_token, user_id) VALUES ($1, $2)`
-	_, err = conn.db.Pool.Exec(conn.ctx, query, sessionToken, userID)
+	err = conn.Exec(query, sessionToken, userID)
 	if err != nil {
 		log.Error.Println(err)
 		conn.DistinctError(
@@ -125,7 +125,7 @@ func (conn *Connection) DeleteSessionToken(sessionToken string) error {
 	}
 
 	query := `DELETE FROM sessions WHERE session_token = $1`
-	_, err := conn.db.Pool.Exec(conn.ctx, query, sessionToken)
+	err := conn.Exec(query, sessionToken)
 	if err != nil {
 		log.Error.Println(err)
 		log.Error.Println("failed to delete a session token")
