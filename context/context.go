@@ -9,6 +9,7 @@ import (
 type Context = context.Context
 type CancelFunc = context.CancelFunc
 
+var Canceled = context.Canceled
 var DeadlineExceed = context.DeadlineExceeded
 
 func Background() Context {

@@ -28,6 +28,10 @@ type Item struct {
 }
 
 func (conn *Connection) parseRSS(url string) (*RSS, error) {
+	if !conn.ContextAlive() {
+		return nil, errors.Error
+	}
+
 	resp, err := http.Get(url)
 	if err != nil {
 		conn.Error("failed to request the resource", http.StatusBadRequest)

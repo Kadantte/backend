@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"strings"
 
-	"morbo/context"
 	"morbo/errors"
 	"morbo/log"
 
@@ -22,6 +21,10 @@ type Credentials struct {
 }
 
 func (conn *Connection) AuthenticateViaCredentials(credentials Credentials) (userID int, err error) {
+	if !conn.ContextAlive() {
+		return -1, errors.Error
+	}
+
 	var hashedPassword string
 
 	query := `SELECT id, password FROM users WHERE username = $1`
@@ -48,6 +51,10 @@ func (conn *Connection) AuthenticateViaCredentials(credentials Credentials) (use
 }
 
 func (conn *Connection) AuthenticateViaSessionToken(sessionToken string) (userID int, err error) {
+	if !conn.ContextAlive() {
+		return -1, errors.Error
+	}
+
 	query := `SELECT user_id FROM sessions WHERE session_token = $1`
 	row := conn.db.Pool.QueryRow(conn.ctx, query, sessionToken)
 	err = row.Scan(&userID)
@@ -59,8 +66,6 @@ func (conn *Connection) AuthenticateViaSessionToken(sessionToken string) (userID
 				"unauthorized",
 				http.StatusUnauthorized,
 			)
-		case context.DeadlineExceed:
-			conn.Error("took too long to finish the request", http.StatusGatewayTimeout)
 		default:
 			log.Error.Println(err)
 			conn.DistinctError(
@@ -83,6 +88,10 @@ func (conn *Connection) AuthenticateViaSessionToken(sessionToken string) (userID
 }
 
 func (conn *Connection) GenerateSessionToken(userID int) (sessionToken string, err error) {
+	if !conn.ContextAlive() {
+		return "", errors.Error
+	}
+
 	byteSessionToken := make([]byte, 40)
 	if _, err := rand.Read(byteSessionToken); err != nil {
 		log.Error.Println(err)
@@ -111,6 +120,10 @@ func (conn *Connection) GenerateSessionToken(userID int) (sessionToken string, e
 }
 
 func (conn *Connection) DeleteSessionToken(sessionToken string) error {
+	if !conn.ContextAlive() {
+		return errors.Error
+	}
+
 	query := `DELETE FROM sessions WHERE session_token = $1`
 	_, err := conn.db.Pool.Exec(conn.ctx, query, sessionToken)
 	if err != nil {
@@ -123,6 +136,10 @@ func (conn *Connection) DeleteSessionToken(sessionToken string) error {
 }
 
 func (conn *Connection) GetSessionToken() (string, error) {
+	if !conn.ContextAlive() {
+		return "", errors.Error
+	}
+
 	authHeader := conn.request.Header.Get("Authorization")
 	if authHeader == "" {
 		conn.Error("empty Authorization header", http.StatusUnauthorized)

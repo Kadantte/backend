@@ -47,6 +47,20 @@ func (conn *Connection) DistinctError(serverMessage string, userMessage string, 
 	fmt.Fprint(conn.writer, userMessage)
 }
 
+func (conn *Connection) ContextAlive() bool {
+	err := conn.ctx.Err()
+	if err != nil {
+		switch err {
+		case context.Canceled:
+			conn.Error("the request has been canceled by the server", http.StatusServiceUnavailable)
+		case context.DeadlineExceed:
+			conn.Error("took too long to finish the request", http.StatusGatewayTimeout)
+		}
+		return false
+	}
+	return true
+}
+
 func (conn *Connection) Disconnect() {
 	conn.cancelContext()
 	context.GetWaitGroup(conn.ctx).Done()
