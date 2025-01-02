@@ -6,6 +6,7 @@ import (
 )
 
 var (
-	Info  = log.New(os.Stderr, " info: ", log.LstdFlags|log.Lmsgprefix)
-	Error = log.New(os.Stderr, "error: ", log.LstdFlags|log.Lmsgprefix)
+	flag  = log.LstdFlags | log.Lmicroseconds
+	Info  = log.New(os.Stderr, " info: ", flag)
+	Error = log.New(os.Stderr, "error: ", flag)
 )
