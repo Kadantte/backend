@@ -21,7 +21,7 @@ func (handler *feedHandler) handlePost(conn *Connection) error {
 
 	_, err = conn.AuthenticateViaSessionToken(sessionToken)
 	if err != nil {
-		log.Error.Println("failed to authenticate by the session token")
+		log.Error.Println("failed to authenticate via the session token")
 		return errors.Error
 	}
 
