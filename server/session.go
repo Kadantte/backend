@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"morbo/errors"
-	"morbo/log"
 
 	"github.com/jackc/pgx/v5"
 	"golang.org/x/crypto/bcrypt"
@@ -35,14 +34,14 @@ func (conn *Connection) AuthenticateViaCredentials(credentials Credentials) (use
 		case pgx.ErrNoRows:
 			conn.Error("no such user found", http.StatusUnauthorized)
 		default:
-			log.Error.Println("failed to retrieve the stored credentials")
+			conn.log.Error.Println("failed to retrieve the stored credentials")
 		}
 		return -1, errors.Error
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(credentials.Password))
 	if err != nil {
-		log.Error.Println(err)
+		conn.log.Error.Println(err)
 		conn.Error("password doesn't match", http.StatusUnauthorized)
 		return -1, errors.Error
 	}
@@ -63,7 +62,7 @@ func (conn *Connection) AuthenticateViaSessionToken(sessionToken string) (userID
 		case pgx.ErrNoRows:
 			conn.Error("no such session token found", http.StatusUnauthorized)
 		default:
-			log.Error.Println("failed to retrieve the session token")
+			conn.log.Error.Println("failed to retrieve the session token")
 		}
 		return -1, errors.Error
 	}
@@ -71,7 +70,7 @@ func (conn *Connection) AuthenticateViaSessionToken(sessionToken string) (userID
 	query = `UPDATE sessions SET last_access = NOW() WHERE session_token = $1`
 	err = conn.Exec(query, sessionToken)
 	if err != nil {
-		log.Error.Println("failed to update the last access time of the session token")
+		conn.log.Error.Println("failed to update the last access time of the session token")
 		return -1, errors.Error
 	}
 
@@ -85,7 +84,7 @@ func (conn *Connection) GenerateSessionToken(userID int) (sessionToken string, e
 
 	byteSessionToken := make([]byte, 40)
 	if _, err := rand.Read(byteSessionToken); err != nil {
-		log.Error.Println(err)
+		conn.log.Error.Println(err)
 		conn.DistinctError(
 			"failed to generate a session token",
 			"internal server error",
@@ -98,7 +97,7 @@ func (conn *Connection) GenerateSessionToken(userID int) (sessionToken string, e
 	query := `INSERT INTO sessions (session_token, user_id) VALUES ($1, $2)`
 	err = conn.Exec(query, sessionToken, userID)
 	if err != nil {
-		log.Error.Println("failed to store a session token")
+		conn.log.Error.Println("failed to store a session token")
 		return "", errors.Error
 	}
 
@@ -113,7 +112,7 @@ func (conn *Connection) DeleteSessionToken(sessionToken string) error {
 	query := `DELETE FROM sessions WHERE session_token = $1`
 	err := conn.Exec(query, sessionToken)
 	if err != nil {
-		log.Error.Println("failed to execute the statement for deleting the session token")
+		conn.log.Error.Println("failed to execute the statement for deleting the session token")
 		return errors.Error
 	}
 
@@ -147,7 +146,7 @@ type sessionHandler struct {
 func (handler *sessionHandler) handlePost(conn *Connection) error {
 	body, err := io.ReadAll(conn.request.Body)
 	if err != nil {
-		log.Error.Println(err)
+		conn.log.Error.Println(err)
 		conn.Error("failed to read the request body", http.StatusBadRequest)
 		return errors.Error
 	}
@@ -155,20 +154,20 @@ func (handler *sessionHandler) handlePost(conn *Connection) error {
 	var credentials Credentials
 	err = json.Unmarshal(body, &credentials)
 	if err != nil {
-		log.Error.Println(err)
+		conn.log.Error.Println(err)
 		conn.Error("couldn't parse the body as a JSON object", http.StatusBadRequest)
 		return errors.Error
 	}
 
 	userID, err := conn.AuthenticateViaCredentials(credentials)
 	if err != nil {
-		log.Error.Println("failed to authenticate via credentials")
+		conn.log.Error.Println("failed to authenticate via credentials")
 		return err
 	}
 
 	sessionToken, err := conn.GenerateSessionToken(userID)
 	if err != nil {
-		log.Error.Println("failed to generate a session token")
+		conn.log.Error.Println("failed to generate a session token")
 		return err
 	}
 
@@ -184,7 +183,7 @@ func (handler *sessionHandler) handlePost(conn *Connection) error {
 func (handler *sessionHandler) handleDelete(conn *Connection) error {
 	sessionToken, err := conn.GetSessionToken()
 	if err != nil {
-		log.Error.Println("failed to get the session token")
+		conn.log.Error.Println("failed to get the session token")
 		return errors.Error
 	}
 
@@ -192,7 +191,7 @@ func (handler *sessionHandler) handleDelete(conn *Connection) error {
 
 	err = conn.DeleteSessionToken(sessionToken)
 	if err != nil {
-		log.Error.Println("failed to delete the session token")
+		conn.log.Error.Println("failed to delete the session token")
 		return errors.Error
 	}
 
@@ -209,15 +208,15 @@ func (handler *sessionHandler) ServeHTTP(writer http.ResponseWriter, request *ht
 	conn := NewConnection(&handler.baseHandler, writer, request)
 	defer conn.Disconnect()
 
-	log.Info.Printf("%s %s\n", request.Method, request.URL.Path)
+	conn.log.Info.Printf("%s %s\n", request.Method, request.URL.Path)
 	switch request.Method {
 	case http.MethodPost:
 		if err := handler.handlePost(conn); err != nil {
-			log.Error.Println("failed to handle the POST request to \"/session/\"")
+			conn.log.Error.Println("failed to handle the POST request to \"/session/\"")
 		}
 	case http.MethodDelete:
 		if err := handler.handleDelete(conn); err != nil {
-			log.Error.Println("failed to handle the DELETE request to \"/session/\"")
+			conn.log.Error.Println("failed to handle the DELETE request to \"/session/\"")
 		}
 	case http.MethodOptions:
 		handler.handleOptions(writer, request)

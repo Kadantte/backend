@@ -2,7 +2,6 @@ package server
 
 import (
 	"morbo/errors"
-	"morbo/log"
 	"net/http"
 
 	"github.com/jackc/pgx/v5"
@@ -21,7 +20,7 @@ func (conn *Connection) ScanRow(row pgx.Row, dest ...any) error {
 		switch err {
 		case pgx.ErrNoRows:
 		default:
-			log.Error.Println(err)
+			conn.log.Error.Println(err)
 			conn.DistinctError(
 				"failed to query for a row",
 				"internal server error",
@@ -38,7 +37,7 @@ func (conn *Connection) Exec(query string, args ...any) error {
 	}
 	_, err := conn.db.Pool.Exec(conn.ctx, query, args...)
 	if err != nil {
-		log.Error.Println(err)
+		conn.log.Error.Println(err)
 		conn.DistinctError(
 			"failed to execute the statement",
 			"internal server error",

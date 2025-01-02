@@ -8,15 +8,24 @@ import (
 	"morbo/db"
 	"morbo/log"
 	"net/http"
+
+	"github.com/google/uuid"
 )
 
+type Log struct {
+	Info  log.Logger
+	Error log.Logger
+}
+
 type Connection struct {
+	id      string
 	ctx     context.Context
 	db      *db.DB
 	writer  http.ResponseWriter
 	request *http.Request
 
 	cancelContext context.CancelFunc
+	log           Log
 }
 
 func NewConnection(
@@ -25,7 +34,12 @@ func NewConnection(
 	request *http.Request,
 ) *Connection {
 	ctx, cancel := context.WithTimeout(handler.ctx, 15*time.Second)
-	conn := &Connection{ctx, handler.db, writer, request, cancel}
+	id := uuid.New().String()
+	log := Log{
+		Info:  log.New(" info: ", id),
+		Error: log.New("error: ", id),
+	}
+	conn := &Connection{id, ctx, handler.db, writer, request, cancel, log}
 
 	context.GetWaitGroup(conn.ctx).Add(1)
 
@@ -42,7 +56,7 @@ func (conn *Connection) Error(message string, statusCode int) {
 }
 
 func (conn *Connection) DistinctError(serverMessage string, userMessage string, statusCode int) {
-	log.Error.Println(serverMessage)
+	conn.log.Error.Println(serverMessage)
 	conn.writer.WriteHeader(statusCode)
 	fmt.Fprint(conn.writer, userMessage)
 }

@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"morbo/errors"
-	"morbo/log"
 )
 
 type feedHandler struct {
@@ -15,13 +14,13 @@ type feedHandler struct {
 func (handler *feedHandler) handlePost(conn *Connection) error {
 	sessionToken, err := conn.GetSessionToken()
 	if err != nil {
-		log.Error.Println("failed to get the session token")
+		conn.log.Error.Println("failed to get the session token")
 		return errors.Error
 	}
 
 	_, err = conn.AuthenticateViaSessionToken(sessionToken)
 	if err != nil {
-		log.Error.Println("failed to authenticate via the session token")
+		conn.log.Error.Println("failed to authenticate via the session token")
 		return errors.Error
 	}
 
@@ -31,14 +30,14 @@ func (handler *feedHandler) handlePost(conn *Connection) error {
 
 	var requestBody RequestBody
 	if err := json.NewDecoder(conn.request.Body).Decode(&requestBody); err != nil {
-		log.Error.Println(err)
+		conn.log.Error.Println(err)
 		conn.Error("failed to decode the request body", http.StatusBadRequest)
 		return errors.Error
 	}
 
 	rss, err := conn.parseRSS(requestBody.URL)
 	if err != nil {
-		log.Error.Println("failed to parse the RSS feed")
+		conn.log.Error.Println("failed to parse the RSS feed")
 		return errors.Error
 	}
 
@@ -61,11 +60,11 @@ func (handler *feedHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 	conn := NewConnection(&handler.baseHandler, writer, request)
 	defer conn.Disconnect()
 
-	log.Info.Printf("%s %s %s\n", request.RemoteAddr, request.Method, request.URL.Path)
+	conn.log.Info.Printf("%s %s %s\n", request.RemoteAddr, request.Method, request.URL.Path)
 	switch request.Method {
 	case http.MethodPost:
 		if err := handler.handlePost(conn); err != nil {
-			log.Error.Println("failed to handle the POST request to \"/feed/\"")
+			conn.log.Error.Println("failed to handle the POST request to \"/feed/\"")
 		}
 	case http.MethodOptions:
 		handler.handleOptions(writer, request)
