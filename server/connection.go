@@ -1,6 +1,7 @@
 package server
 
 import (
+	"crypto/rand"
 	"fmt"
 	"time"
 
@@ -8,8 +9,6 @@ import (
 	"morbo/db"
 	"morbo/log"
 	"net/http"
-
-	"github.com/google/uuid"
 )
 
 type Log struct {
@@ -28,13 +27,25 @@ type Connection struct {
 	log           Log
 }
 
+func BigEndianUInt40(b []byte) uint64 {
+	_ = b[4]
+	return uint64(b[4]) | uint64(b[3])<<8 | uint64(b[2])<<16 | uint64(b[1])<<24 | uint64(b[0])<<32
+}
+
+func newID() string {
+	bytes := make([]byte, 5)
+	rand.Read(bytes)
+	number := BigEndianUInt40(bytes)
+	return fmt.Sprintf("%013x", number)
+}
+
 func NewConnection(
 	handler *baseHandler,
 	writer http.ResponseWriter,
 	request *http.Request,
 ) *Connection {
 	ctx, cancel := context.WithTimeout(handler.ctx, 15*time.Second)
-	id := uuid.New().String()
+	id := newID()
 	log := Log{
 		Info:  log.New(" info: ", id),
 		Error: log.New("error: ", id),
