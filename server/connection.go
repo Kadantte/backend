@@ -36,7 +36,7 @@ func newID() string {
 	bytes := make([]byte, 5)
 	rand.Read(bytes)
 	number := BigEndianUInt40(bytes)
-	return fmt.Sprintf("%013x", number)
+	return fmt.Sprintf("%011x", number)
 }
 
 func NewConnection(
