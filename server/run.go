@@ -6,7 +6,7 @@ import (
 	"morbo/log"
 )
 
-func Run(ctx context.Context) (*Server, error) {
+func Run(ctx context.Context, log *log.Log) (*Server, error) {
 	server, err := NewServer(ctx, "0.0.0.0", 80)
 	if err != nil {
 		log.Error.Println("failed to create the server")
@@ -15,7 +15,7 @@ func Run(ctx context.Context) (*Server, error) {
 
 	err = server.ListenAndServe(ctx)
 	if err != nil {
-		log.Error.Println("failed to listen and serve")
+		server.log.Error.Println("failed to listen and serve")
 		return nil, errors.Error
 	}
 

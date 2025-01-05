@@ -1,45 +1,28 @@
 package server
 
 import (
-	"crypto/rand"
 	"fmt"
+	"net/http"
 	"time"
 
 	"morbo/context"
 	"morbo/db"
 	"morbo/log"
-	"net/http"
 )
 
-type Log struct {
-	Info  log.Logger
-	Error log.Logger
-}
-
 type Connection struct {
-	id      string
 	ctx     context.Context
 	db      *db.DB
 	writer  http.ResponseWriter
 	request *http.Request
 
 	cancelContext context.CancelFunc
-	log           Log
+	log           log.Log
 }
 
 func BigEndianUInt40(b []byte) uint64 {
 	_ = b[4]
 	return uint64(b[4]) | uint64(b[3])<<8 | uint64(b[2])<<16 | uint64(b[1])<<24 | uint64(b[0])<<32
-}
-
-func newID() string {
-	bytes := make([]byte, 5)
-	_, err := rand.Read(bytes)
-	if err != nil {
-		log.Error.Println("failed to generate a new ID")
-	}
-	number := BigEndianUInt40(bytes)
-	return fmt.Sprintf("%011x", number)
 }
 
 func NewConnection(
@@ -48,12 +31,9 @@ func NewConnection(
 	request *http.Request,
 ) *Connection {
 	ctx, cancel := context.WithTimeout(handler.ctx, 15*time.Second)
-	id := newID()
-	log := Log{
-		Info:  log.New(" info: ", id),
-		Error: log.New("error: ", id),
-	}
-	conn := &Connection{id, ctx, handler.db, writer, request, cancel, log}
+	id := handler.newConnectionID()
+	log := log.NewLog(id)
+	conn := &Connection{ctx, handler.db, writer, request, cancel, log}
 
 	context.GetWaitGroup(conn.ctx).Add(1)
 

@@ -13,15 +13,16 @@ import (
 
 type Server struct {
 	http.Server
-	db *db.DB
+	db  *db.DB
+	log log.Log
 }
 
 func NewServer(ctx context.Context, ip string, port int) (*Server, error) {
-	var server Server
+	server := Server{log: log.NewLog("server")}
 
 	db, err := db.Prepare(ctx)
 	if err != nil {
-		log.Error.Println("failed to prepare the database")
+		server.log.Error.Println("failed to prepare the database")
 		return nil, errors.Error
 	}
 
@@ -36,20 +37,20 @@ func (server *Server) ListenAndServe(ctx context.Context) error {
 
 	listener, err := net.Listen("tcp", server.Addr)
 	if err != nil {
-		log.Error.Println(err)
-		log.Error.Printf("failed to listen at %s", server.Addr)
+		server.log.Error.Println(err)
+		server.log.Error.Printf("failed to listen at %s", server.Addr)
 		return errors.Error
 	}
-	log.Info.Printf("listening at %v", server.Addr)
+	server.log.Info.Printf("listening at %v", server.Addr)
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 
-		log.Info.Println("starting the server")
+		server.log.Info.Println("starting the server")
 		if err := server.Serve(listener); err != http.ErrServerClosed {
-			log.Error.Println(err)
-			log.Error.Println("unexpected error returned from the server")
+			server.log.Error.Println(err)
+			server.log.Error.Println("unexpected error returned from the server")
 		}
 	}()
 
@@ -57,14 +58,14 @@ func (server *Server) ListenAndServe(ctx context.Context) error {
 }
 
 func (server *Server) Shutdown(ctx context.Context) {
-	log.Info.Println("server shutdown initiated")
-	defer log.Info.Println("server shutdown finished")
+	server.log.Info.Println("server shutdown initiated")
+	defer server.log.Info.Println("server shutdown finished")
 
-	log.Info.Println("closing all database connections")
+	server.log.Info.Println("closing all database connections")
 	server.db.Close()
 
 	if err := server.Server.Shutdown(ctx); err != nil {
-		log.Error.Println(err)
-		log.Error.Println("failed to shutdown the server")
+		server.log.Error.Println(err)
+		server.log.Error.Println("failed to shutdown the server")
 	}
 }

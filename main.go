@@ -23,10 +23,16 @@ func main() {
 		syscall.SIGQUIT,
 	)
 
-	server, err := server.Run(ctx)
+	log := log.NewLog("main")
+
+	server, err := server.NewServer(ctx, "0.0.0.0", 80)
 	if err != nil {
-		log.Error.Println("failed to start the server")
-		os.Exit(1)
+		log.Error.Fatalln("failed to create the server")
+	}
+
+	err = server.ListenAndServe(ctx)
+	if err != nil {
+		log.Error.Fatalln("failed to listen and serve")
 	}
 
 	<-sigchan

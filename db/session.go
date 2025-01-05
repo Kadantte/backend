@@ -5,22 +5,21 @@ import (
 
 	"morbo/context"
 	"morbo/errors"
-	"morbo/log"
 )
 
 func (db *DB) cleanupStaleSessions(ctx context.Context) error {
-	log.Info.Println("cleaning up stale sessions")
+	db.log.Info.Println("cleaning up stale sessions")
 
 	query := `DELETE FROM sessions WHERE last_access < NOW() - INTERVAL '30 days';`
 	result, err := db.Pool.Exec(ctx, query)
 	if err != nil {
-		log.Error.Println(err)
-		log.Error.Println("failed to run the query to clean up stale sessions")
+		db.log.Error.Println(err)
+		db.log.Error.Println("failed to run the query to clean up stale sessions")
 		return errors.Error
 	}
 
 	rowsAffected := result.RowsAffected()
-	log.Info.Println("deleted", rowsAffected, "stale sessions")
+	db.log.Info.Println("deleted", rowsAffected, "stale sessions")
 
 	return nil
 }
@@ -28,7 +27,7 @@ func (db *DB) cleanupStaleSessions(ctx context.Context) error {
 func (db *DB) StartPeriodicStaleSessionsCleanup(ctx context.Context) {
 	wg := context.GetWaitGroup(ctx)
 
-	log.Info.Println("starting periodic stale sessions cleanup")
+	db.log.Info.Println("starting periodic stale sessions cleanup")
 
 	wg.Add(1)
 	go func() {
@@ -41,10 +40,10 @@ func (db *DB) StartPeriodicStaleSessionsCleanup(ctx context.Context) {
 			select {
 			case <-ticker.C:
 				if err := db.cleanupStaleSessions(ctx); err != nil {
-					log.Error.Println("failed to clean up stale sessions")
+					db.log.Error.Println("failed to clean up stale sessions")
 				}
 			case <-ctx.Done():
-				log.Info.Println("stopping periodic stale sessions cleanup")
+				db.log.Info.Println("stopping periodic stale sessions cleanup")
 				return
 			}
 		}
