@@ -32,7 +32,11 @@ type (
 const waitGroupKey waitGroupKeyType = 0
 
 func GetWaitGroup(ctx Context) waitGroupValueType {
-	return ctx.Value(waitGroupKey).(waitGroupValueType)
+	value, ok := ctx.Value(waitGroupKey).(waitGroupValueType)
+	if !ok {
+		panic("the `waitGroupValueType` is wrong")
+	}
+	return value
 }
 
 func WithWaitGroup(parent Context) (Context, CancelFunc) {
