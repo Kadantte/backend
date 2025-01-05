@@ -6,11 +6,15 @@ import (
 	"time"
 )
 
-type Context = context.Context
-type CancelFunc = context.CancelFunc
+type (
+	Context    = context.Context
+	CancelFunc = context.CancelFunc
+)
 
-var Canceled = context.Canceled
-var DeadlineExceed = context.DeadlineExceeded
+var (
+	ErrCanceled       = context.Canceled
+	ErrDeadlineExceed = context.DeadlineExceeded
+)
 
 func Background() Context {
 	return context.Background()
@@ -20,8 +24,10 @@ func WithTimeout(parent Context, timeout time.Duration) (Context, CancelFunc) {
 	return context.WithTimeout(parent, timeout)
 }
 
-type waitGroupKeyType int
-type waitGroupValueType = *sync.WaitGroup
+type (
+	waitGroupKeyType   int
+	waitGroupValueType = *sync.WaitGroup
+)
 
 const waitGroupKey waitGroupKeyType = 0
 
