@@ -1,7 +1,7 @@
 package errors
 
-type error struct{}
+type _error struct{}
 
-func (e *error) Error() string { return "" }
+func (e *_error) Error() string { return "" }
 
-var Error *error = &error{}
+var Error *_error = &_error{}
