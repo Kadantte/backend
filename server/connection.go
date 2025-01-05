@@ -34,7 +34,10 @@ func BigEndianUInt40(b []byte) uint64 {
 
 func newID() string {
 	bytes := make([]byte, 5)
-	rand.Read(bytes)
+	_, err := rand.Read(bytes)
+	if err != nil {
+		log.Error.Println("failed to generate a new ID")
+	}
 	number := BigEndianUInt40(bytes)
 	return fmt.Sprintf("%011x", number)
 }
