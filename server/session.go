@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
-	"io"
 	"net/http"
 	"strings"
 
@@ -89,6 +88,7 @@ func (conn *Connection) GenerateSessionToken(userID int) (sessionToken string, e
 		)
 		return "", errors.Error
 	}
+
 	sessionToken = base64.RawURLEncoding.EncodeToString(byteSessionToken)
 
 	query := `INSERT INTO sessions (session_token, user_id) VALUES ($1, $2)`
@@ -139,22 +139,16 @@ type sessionHandler struct {
 }
 
 func (handler *sessionHandler) handlePost(conn *Connection) error {
-	body, err := io.ReadAll(conn.request.Body)
-	if err != nil {
+	type RequestBody = Credentials
+
+	var requestBody RequestBody
+	if err := json.NewDecoder(conn.request.Body).Decode(&requestBody); err != nil {
 		conn.log.Error.Println(err)
-		conn.Error("failed to read the request body", http.StatusBadRequest)
+		conn.Error("failed to decode the request body", http.StatusBadRequest)
 		return errors.Error
 	}
 
-	var credentials Credentials
-	err = json.Unmarshal(body, &credentials)
-	if err != nil {
-		conn.log.Error.Println(err)
-		conn.Error("couldn't parse the body as a JSON object", http.StatusBadRequest)
-		return errors.Error
-	}
-
-	userID, err := conn.AuthenticateViaCredentials(credentials)
+	userID, err := conn.AuthenticateViaCredentials(requestBody)
 	if err != nil {
 		conn.log.Error.Println("failed to authenticate via credentials")
 		return err
@@ -166,17 +160,25 @@ func (handler *sessionHandler) handlePost(conn *Connection) error {
 		return err
 	}
 
-	type loginResponse struct {
+	type ResponseBody struct {
 		SessionToken string `json:"sessionToken"`
 	}
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(loginResponse{sessionToken}); err != nil {
-		conn.Error("failed to encode the response", http.StatusInternalServerError)
+
+	responseBody := ResponseBody{sessionToken}
+
+	var responseBodyBuffer bytes.Buffer
+	if err := json.NewEncoder(&responseBodyBuffer).Encode(responseBody); err != nil {
+		conn.DistinctError(
+			"failed to encode the response",
+			"internal server error",
+			http.StatusInternalServerError,
+		)
 		return errors.Error
 	}
 
 	conn.writer.Header().Set("Content-Type", "application/json")
-	if _, err := buf.WriteTo(conn.writer); err != nil {
+
+	if _, err := responseBodyBuffer.WriteTo(conn.writer); err != nil {
 		conn.log.Error.Println("failed to write to the body")
 		return errors.Error
 	}
@@ -212,6 +214,7 @@ func (handler *sessionHandler) ServeHTTP(writer http.ResponseWriter, request *ht
 	defer conn.Disconnect()
 
 	conn.log.Info.Printf("%s %s\n", request.Method, request.URL.Path)
+
 	switch request.Method {
 	case http.MethodPost:
 		if err := handler.handlePost(conn); err != nil {

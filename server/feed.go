@@ -44,8 +44,11 @@ func (handler *feedHandler) handlePost(conn *Connection) error {
 	type ResponseBody struct {
 		Title string `json:"title"`
 	}
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(ResponseBody{rss.Channel.Title}); err != nil {
+
+	responseBody := ResponseBody{rss.Channel.Title}
+
+	var responseBodyBuffer bytes.Buffer
+	if err := json.NewEncoder(&responseBodyBuffer).Encode(&responseBody); err != nil {
 		conn.DistinctError(
 			"failed to encode the response",
 			"internal server error",
@@ -54,8 +57,9 @@ func (handler *feedHandler) handlePost(conn *Connection) error {
 		return errors.Error
 	}
 
-	conn.writer.WriteHeader(http.StatusOK)
-	if _, err = buf.WriteTo(conn.writer); err != nil {
+	conn.writer.Header().Set("Content-Type", "application/json")
+
+	if _, err = responseBodyBuffer.WriteTo(conn.writer); err != nil {
 		conn.log.Error.Println("failed to write to the body")
 		return errors.Error
 	}
@@ -74,6 +78,7 @@ func (handler *feedHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 	defer conn.Disconnect()
 
 	conn.log.Info.Printf("%s %s %s\n", request.RemoteAddr, request.Method, request.URL.Path)
+
 	switch request.Method {
 	case http.MethodPost:
 		if err := handler.handlePost(conn); err != nil {
