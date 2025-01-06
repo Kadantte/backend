@@ -58,8 +58,7 @@ func (conn *Connection) parseRSS(url string) (*RSS, error) {
 	}
 
 	var rss RSS
-	err = xml.Unmarshal(body, &rss)
-	if err != nil {
+	if err := xml.Unmarshal(body, &rss); err != nil {
 		conn.Error("failed to parse the resource as an RSS feed", http.StatusUnprocessableEntity)
 		return nil, errors.Error
 	}

@@ -35,8 +35,8 @@ func (conn *Connection) Exec(query string, args ...any) error {
 	if !conn.ContextAlive() {
 		return errors.Error
 	}
-	_, err := conn.db.Pool.Exec(conn.ctx, query, args...)
-	if err != nil {
+
+	if _, err := conn.db.Pool.Exec(conn.ctx, query, args...); err != nil {
 		conn.log.Error.Println(err)
 		conn.DistinctError(
 			"failed to execute the statement",

@@ -13,8 +13,7 @@ func Run(ctx context.Context, log *log.Log) (*Server, error) {
 		return nil, errors.Error
 	}
 
-	err = server.ListenAndServe(ctx)
-	if err != nil {
+	if err = server.ListenAndServe(ctx); err != nil {
 		server.log.Error.Println("failed to listen and serve")
 		return nil, errors.Error
 	}

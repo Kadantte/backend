@@ -56,8 +56,7 @@ func (conn *Connection) DistinctError(serverMessage string, userMessage string, 
 }
 
 func (conn *Connection) ContextAlive() bool {
-	err := conn.ctx.Err()
-	if err != nil {
+	if err := conn.ctx.Err(); err != nil {
 		switch err {
 		case context.ErrCanceled:
 			conn.Error("the request has been canceled by the server", http.StatusServiceUnavailable)

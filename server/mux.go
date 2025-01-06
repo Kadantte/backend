@@ -18,8 +18,7 @@ type baseHandler struct {
 
 func (handler *baseHandler) newConnectionID() string {
 	bytes := make([]byte, 5)
-	_, err := rand.Read(bytes)
-	if err != nil {
+	if _, err := rand.Read(bytes); err != nil {
 		handler.log.Error.Println("failed to generate a new ID")
 	}
 	number := BigEndianUInt40(bytes)

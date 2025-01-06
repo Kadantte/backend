@@ -29,8 +29,7 @@ func (conn *Connection) AuthenticateViaCredentials(credentials Credentials) (use
 
 	query := `SELECT id, password FROM users WHERE username = $1`
 	row := conn.QueryRow(query, credentials.Username)
-	err = conn.ScanRow(row, &userID, &hashedPassword)
-	if err != nil {
+	if err = conn.ScanRow(row, &userID, &hashedPassword); err != nil {
 		switch err {
 		case pgx.ErrNoRows:
 			conn.Error("no such user found", http.StatusUnauthorized)
@@ -40,8 +39,7 @@ func (conn *Connection) AuthenticateViaCredentials(credentials Credentials) (use
 		return -1, errors.Error
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(credentials.Password))
-	if err != nil {
+	if err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(credentials.Password)); err != nil {
 		conn.log.Error.Println(err)
 		conn.Error("password doesn't match", http.StatusUnauthorized)
 		return -1, errors.Error
@@ -57,8 +55,7 @@ func (conn *Connection) AuthenticateViaSessionToken(sessionToken string) (userID
 
 	query := `SELECT user_id FROM sessions WHERE session_token = $1`
 	row := conn.QueryRow(query, sessionToken)
-	err = conn.ScanRow(row, &userID)
-	if err != nil {
+	if err = conn.ScanRow(row, &userID); err != nil {
 		switch err {
 		case pgx.ErrNoRows:
 			conn.Error("no such session token found", http.StatusUnauthorized)
@@ -69,8 +66,7 @@ func (conn *Connection) AuthenticateViaSessionToken(sessionToken string) (userID
 	}
 
 	query = `UPDATE sessions SET last_access = NOW() WHERE session_token = $1`
-	err = conn.Exec(query, sessionToken)
-	if err != nil {
+	if err := conn.Exec(query, sessionToken); err != nil {
 		conn.log.Error.Println("failed to update the last access time of the session token")
 		return -1, errors.Error
 	}
@@ -96,8 +92,7 @@ func (conn *Connection) GenerateSessionToken(userID int) (sessionToken string, e
 	sessionToken = base64.RawURLEncoding.EncodeToString(byteSessionToken)
 
 	query := `INSERT INTO sessions (session_token, user_id) VALUES ($1, $2)`
-	err = conn.Exec(query, sessionToken, userID)
-	if err != nil {
+	if err := conn.Exec(query, sessionToken, userID); err != nil {
 		conn.log.Error.Println("failed to store a session token")
 		return "", errors.Error
 	}
@@ -111,8 +106,7 @@ func (conn *Connection) DeleteSessionToken(sessionToken string) error {
 	}
 
 	query := `DELETE FROM sessions WHERE session_token = $1`
-	err := conn.Exec(query, sessionToken)
-	if err != nil {
+	if err := conn.Exec(query, sessionToken); err != nil {
 		conn.log.Error.Println("failed to execute the statement for deleting the session token")
 		return errors.Error
 	}
@@ -199,8 +193,7 @@ func (handler *sessionHandler) handleDelete(conn *Connection) error {
 
 	conn.writer.WriteHeader(http.StatusOK)
 
-	err = conn.DeleteSessionToken(sessionToken)
-	if err != nil {
+	if err := conn.DeleteSessionToken(sessionToken); err != nil {
 		conn.log.Error.Println("failed to delete the session token")
 		return errors.Error
 	}

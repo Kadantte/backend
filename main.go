@@ -30,8 +30,7 @@ func main() {
 		log.Error.Fatalln("failed to create the server")
 	}
 
-	err = server.ListenAndServe(ctx)
-	if err != nil {
+	if err := server.ListenAndServe(ctx); err != nil {
 		log.Error.Fatalln("failed to listen and serve")
 	}
 
