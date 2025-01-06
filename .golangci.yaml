@@ -4,3 +4,4 @@ linters:
     - exportloopref
     - ireturn
     - nlreturn
+    - wsl
