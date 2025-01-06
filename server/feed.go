@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 
@@ -44,8 +45,21 @@ func (handler *feedHandler) handlePost(conn *Connection) error {
 	type ResponseBody struct {
 		Title string `json:"title"`
 	}
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(ResponseBody{rss.Channel.Title}); err != nil {
+		conn.DistinctError(
+			"failed to encode the response",
+			"internal server error",
+			http.StatusInternalServerError,
+		)
+		return errors.Error
+	}
+
 	conn.writer.WriteHeader(http.StatusOK)
-	json.NewEncoder(conn.writer).Encode(ResponseBody{rss.Channel.Title})
+	if _, err = buf.WriteTo(conn.writer); err != nil {
+		conn.log.Error.Println("failed to write to the body")
+		return errors.Error
+	}
 
 	return nil
 }

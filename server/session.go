@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
@@ -174,8 +175,17 @@ func (handler *sessionHandler) handlePost(conn *Connection) error {
 	type loginResponse struct {
 		SessionToken string `json:"sessionToken"`
 	}
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(loginResponse{sessionToken}); err != nil {
+		conn.Error("failed to encode the response", http.StatusInternalServerError)
+		return errors.Error
+	}
+
 	conn.writer.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(conn.writer).Encode(loginResponse{sessionToken})
+	if _, err := buf.WriteTo(conn.writer); err != nil {
+		conn.log.Error.Println("failed to write to the body")
+		return errors.Error
+	}
 
 	return nil
 }
