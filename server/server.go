@@ -41,6 +41,7 @@ func (server *Server) ListenAndServe(ctx context.Context) error {
 		server.log.Error.Printf("failed to listen at %s", server.Addr)
 		return errors.Error
 	}
+
 	server.log.Info.Printf("listening at %v", server.Addr)
 
 	wg.Add(1)

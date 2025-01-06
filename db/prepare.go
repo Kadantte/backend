@@ -34,18 +34,22 @@ func (db *DB) connect(ctx context.Context) error {
 	if dbHost == "" {
 		dbHost = "localhost"
 	}
+
 	dbPort := os.Getenv("MORBO_DB_PORT")
 	if dbPort == "" {
 		dbPort = "5432"
 	}
+
 	dbUser := os.Getenv("MORBO_DB_USER")
 	if dbUser == "" {
 		dbUser = "morbo"
 	}
+
 	dbPassword := os.Getenv("MORBO_DB_PASSWORD")
 	if dbPassword == "" {
 		dbPassword = "morbo"
 	}
+
 	dbName := os.Getenv("MORBO_DB_NAME")
 	if dbName == "" {
 		dbName = "morbo"
@@ -78,11 +82,13 @@ func (db *DB) connect(ctx context.Context) error {
 
 func (db *DB) getCurrentVersion(ctx context.Context) (int, error) {
 	var version int
+
 	row := db.Pool.QueryRow(ctx, "SELECT version FROM schema_version LIMIT 1")
 	if err := row.Scan(&version); err != nil {
 		db.log.Info.Println("assuming the version of the database schema to be 0")
 		return 0, nil
 	}
+
 	return version, nil
 }
 
@@ -92,6 +98,7 @@ func (db *DB) migrate(ctx context.Context) error {
 		db.log.Error.Println("failed to get the current schema version")
 		return errors.Error
 	}
+
 	db.log.Info.Println("current database schema version:", currentVersion)
 
 	for _, migration := range migrations {

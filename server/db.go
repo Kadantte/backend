@@ -1,8 +1,9 @@
 package server
 
 import (
-	"morbo/errors"
 	"net/http"
+
+	"morbo/errors"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -15,6 +16,7 @@ func (conn *Connection) ScanRow(row pgx.Row, dest ...any) error {
 	if !conn.ContextAlive() {
 		return errors.Error
 	}
+
 	err := row.Scan(dest...)
 	if err != nil {
 		switch err {
@@ -28,6 +30,7 @@ func (conn *Connection) ScanRow(row pgx.Row, dest ...any) error {
 			)
 		}
 	}
+
 	return err
 }
 
@@ -45,5 +48,6 @@ func (conn *Connection) Exec(query string, args ...any) error {
 		)
 		return errors.Error
 	}
+
 	return nil
 }
