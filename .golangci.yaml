@@ -13,3 +13,5 @@ linters-settings:
       - localmodule
       - default
     custom-order: true
+  gofumpt:
+    module-path: morbo
