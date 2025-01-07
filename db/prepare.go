@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/jackc/pgx/v5/pgxpool"
-
 	"morbo/errors"
 	"morbo/log"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func Prepare(ctx context.Context) (*DB, error) {

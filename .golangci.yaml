@@ -6,3 +6,10 @@ linters:
     - ireturn
     - nlreturn
     - wsl
+linters-settings:
+  gci:
+    sections:
+      - standard
+      - localmodule
+      - default
+    custom-order: true
