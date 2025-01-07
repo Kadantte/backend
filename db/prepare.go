@@ -30,32 +30,27 @@ func Prepare(ctx context.Context) (*DB, error) {
 }
 
 func (db *DB) connect(ctx context.Context) error {
-	dbHost := os.Getenv("MORBO_DB_HOST")
-	if dbHost == "" {
-		dbHost = "localhost"
+	connParamsEnvs := map[string]string{
+		"MORBO_DB_USER":     "morbo",
+		"MORBO_DB_PASSWORD": "morbo",
+		"MORBO_DB_HOST":     "localhost",
+		"MORBO_DB_PORT":     "5432",
+		"MORBO_DB_NAME":     "morbo",
 	}
 
-	dbPort := os.Getenv("MORBO_DB_PORT")
-	if dbPort == "" {
-		dbPort = "5432"
+	connParams := make([]any, len(connParamsEnvs))
+
+	index := 0
+	for envVar, defaultValue := range connParamsEnvs {
+		value := os.Getenv(envVar)
+		if value == "" {
+			value = defaultValue
+		}
+		connParams[index] = value
+		index += 1
 	}
 
-	dbUser := os.Getenv("MORBO_DB_USER")
-	if dbUser == "" {
-		dbUser = "morbo"
-	}
-
-	dbPassword := os.Getenv("MORBO_DB_PASSWORD")
-	if dbPassword == "" {
-		dbPassword = "morbo"
-	}
-
-	dbName := os.Getenv("MORBO_DB_NAME")
-	if dbName == "" {
-		dbName = "morbo"
-	}
-
-	connString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s", dbUser, dbPassword, dbHost, dbPort, dbName)
+	connString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s", connParams...)
 	config, err := pgxpool.ParseConfig(connString)
 	if err != nil {
 		db.log.Error.Println(err)
