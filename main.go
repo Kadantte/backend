@@ -36,6 +36,4 @@ func main() {
 
 	<-sigchan
 	print("\r")
-
-	server.Shutdown(ctx)
 }

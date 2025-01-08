@@ -46,13 +46,17 @@ func (server *Server) ListenAndServe(ctx context.Context) error {
 
 	wg.Add(1)
 	go func() {
-		defer wg.Done()
-
 		server.log.Info.Println("starting the server")
 		if err := server.Serve(listener); err != http.ErrServerClosed {
 			server.log.Error.Println(err)
 			server.log.Error.Println("unexpected error returned from the server")
 		}
+	}()
+
+	go func() {
+		<-ctx.Done()
+		server.Shutdown(context.Background())
+		wg.Done()
 	}()
 
 	return nil
