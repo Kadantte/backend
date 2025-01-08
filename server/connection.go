@@ -35,8 +35,6 @@ func NewConnection(
 	log := log.NewLog(id)
 	conn := &Connection{ctx, handler.db, writer, request, cancel, log}
 
-	context.GetWaitGroup(conn.ctx).Add(1)
-
 	if origin := conn.request.Header.Get("Origin"); origin != "" {
 		conn.writer.Header().Set("Access-Control-Allow-Origin", origin)
 	}
@@ -70,5 +68,4 @@ func (conn *Connection) ContextAlive() bool {
 
 func (conn *Connection) Disconnect() {
 	conn.cancelContext()
-	context.GetWaitGroup(conn.ctx).Done()
 }
