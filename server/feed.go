@@ -16,9 +16,9 @@ type feedHandler struct {
 }
 
 func (conn *Connection) validateURL(rawURL string) error {
-	const MAXIMUM_URL_LENGTH = 2048
+	const maximumURLLength = 2048
 
-	if len(rawURL) > MAXIMUM_URL_LENGTH {
+	if len(rawURL) > maximumURLLength {
 		conn.Error("the URL is too long", http.StatusBadRequest)
 		return errors.Error
 	}
