@@ -32,6 +32,7 @@ func (conn *Connection) parseRSS(url string) (*RSS, error) {
 		return nil, errors.Error
 	}
 
+	// #nosec G107 -- URL is validated before calling this function
 	resp, err := http.Get(url)
 	if err != nil {
 		conn.Error("failed to request the resource", http.StatusBadRequest)

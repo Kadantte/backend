@@ -3,13 +3,68 @@ package server
 import (
 	"bytes"
 	"encoding/json"
+	"net"
 	"net/http"
+	"net/url"
+	"strings"
 
 	"morbo/errors"
 )
 
 type feedHandler struct {
 	baseHandler
+}
+
+func (conn *Connection) validateURL(rawURL string) error {
+	const MAXIMUM_URL_LENGTH = 2048
+
+	if len(rawURL) > MAXIMUM_URL_LENGTH {
+		conn.Error("the URL is too long", http.StatusBadRequest)
+		return errors.Error
+	}
+
+	url, err := url.Parse(rawURL)
+	if err != nil {
+		conn.Error("failed to parse the url", http.StatusBadRequest)
+		return errors.Error
+	}
+
+	if !url.IsAbs() {
+		conn.Error("only absolute URLs are supported", http.StatusBadRequest)
+		return errors.Error
+	}
+
+	if url.Scheme != "https" && url.Scheme != "http" {
+		conn.Error("this scheme is unsupported", http.StatusBadRequest)
+		return errors.Error
+	}
+
+	host := url.Hostname()
+	if host == "" {
+		conn.Error("hostname cannot be empty", http.StatusBadRequest)
+		return errors.Error
+	}
+
+	if strings.Count(host, ".") == 0 {
+		conn.Error("internal network hostnames aren't allowed", http.StatusBadRequest)
+		return errors.Error
+	}
+
+	port := url.Port()
+	if port != "" && port != "80" && port != "443" {
+		conn.Error("only standard HTTP(S) ports are allowed", http.StatusBadRequest)
+		return errors.Error
+	}
+
+	ips, err := net.LookupIP(host)
+	for _, ip := range ips {
+		if ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsPrivate() {
+			conn.Error("resolved IP is not allowed", http.StatusBadRequest)
+			return errors.Error
+		}
+	}
+
+	return nil
 }
 
 func (handler *feedHandler) handlePost(conn *Connection) error {
@@ -32,6 +87,12 @@ func (handler *feedHandler) handlePost(conn *Connection) error {
 	if err := json.NewDecoder(conn.request.Body).Decode(&requestBody); err != nil {
 		conn.log.Error.Println(err)
 		conn.Error("failed to decode the request body", http.StatusBadRequest)
+		return errors.Error
+	}
+
+	err = conn.validateURL(requestBody.URL)
+	if err != nil {
+		conn.log.Error.Println("failed to validate the URL")
 		return errors.Error
 	}
 
