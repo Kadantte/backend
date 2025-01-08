@@ -5,6 +5,7 @@ linters:
     - forbidigo
     - ireturn
     - nlreturn
+    - varnamelen
     - wsl
 linters-settings:
   gci:
