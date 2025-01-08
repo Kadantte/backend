@@ -15,7 +15,7 @@ func (db *DB) cleanupStaleSessions(ctx context.Context) error {
 	if err != nil {
 		db.log.Error.Println(err)
 		db.log.Error.Println("failed to run the query to clean up stale sessions")
-		return errors.Error
+		return errors.Err
 	}
 
 	rowsAffected := result.RowsAffected()

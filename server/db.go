@@ -14,7 +14,7 @@ func (conn *Connection) QueryRow(query string, args ...any) pgx.Row {
 
 func (conn *Connection) ScanRow(row pgx.Row, dest ...any) error {
 	if !conn.ContextAlive() {
-		return errors.Error
+		return errors.Err
 	}
 
 	err := row.Scan(dest...)
@@ -36,7 +36,7 @@ func (conn *Connection) ScanRow(row pgx.Row, dest ...any) error {
 
 func (conn *Connection) Exec(query string, args ...any) error {
 	if !conn.ContextAlive() {
-		return errors.Error
+		return errors.Err
 	}
 
 	if _, err := conn.db.Pool.Exec(conn.ctx, query, args...); err != nil {
@@ -46,7 +46,7 @@ func (conn *Connection) Exec(query string, args ...any) error {
 			"internal server error",
 			http.StatusInternalServerError,
 		)
-		return errors.Error
+		return errors.Err
 	}
 
 	return nil

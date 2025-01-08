@@ -21,7 +21,7 @@ type Credentials struct {
 
 func (conn *Connection) AuthenticateViaCredentials(credentials Credentials) (userID int, err error) {
 	if !conn.ContextAlive() {
-		return -1, errors.Error
+		return -1, errors.Err
 	}
 
 	var hashedPassword string
@@ -35,13 +35,13 @@ func (conn *Connection) AuthenticateViaCredentials(credentials Credentials) (use
 		default:
 			conn.log.Error.Println("failed to retrieve the stored credentials")
 		}
-		return -1, errors.Error
+		return -1, errors.Err
 	}
 
 	if err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(credentials.Password)); err != nil {
 		conn.log.Error.Println(err)
 		conn.Error("password doesn't match", http.StatusUnauthorized)
-		return -1, errors.Error
+		return -1, errors.Err
 	}
 
 	return userID, nil
@@ -49,7 +49,7 @@ func (conn *Connection) AuthenticateViaCredentials(credentials Credentials) (use
 
 func (conn *Connection) AuthenticateViaSessionToken(sessionToken string) (userID int, err error) {
 	if !conn.ContextAlive() {
-		return -1, errors.Error
+		return -1, errors.Err
 	}
 
 	query := `SELECT user_id FROM sessions WHERE session_token = $1`
@@ -61,13 +61,13 @@ func (conn *Connection) AuthenticateViaSessionToken(sessionToken string) (userID
 		default:
 			conn.log.Error.Println("failed to retrieve the session token")
 		}
-		return -1, errors.Error
+		return -1, errors.Err
 	}
 
 	query = `UPDATE sessions SET last_access = NOW() WHERE session_token = $1`
 	if err := conn.Exec(query, sessionToken); err != nil {
 		conn.log.Error.Println("failed to update the last access time of the session token")
-		return -1, errors.Error
+		return -1, errors.Err
 	}
 
 	return userID, nil
@@ -75,7 +75,7 @@ func (conn *Connection) AuthenticateViaSessionToken(sessionToken string) (userID
 
 func (conn *Connection) GenerateSessionToken(userID int) (sessionToken string, err error) {
 	if !conn.ContextAlive() {
-		return "", errors.Error
+		return "", errors.Err
 	}
 
 	byteSessionToken := make([]byte, 40)
@@ -86,7 +86,7 @@ func (conn *Connection) GenerateSessionToken(userID int) (sessionToken string, e
 			"internal server error",
 			http.StatusInternalServerError,
 		)
-		return "", errors.Error
+		return "", errors.Err
 	}
 
 	sessionToken = base64.RawURLEncoding.EncodeToString(byteSessionToken)
@@ -94,7 +94,7 @@ func (conn *Connection) GenerateSessionToken(userID int) (sessionToken string, e
 	query := `INSERT INTO sessions (session_token, user_id) VALUES ($1, $2)`
 	if err := conn.Exec(query, sessionToken, userID); err != nil {
 		conn.log.Error.Println("failed to store a session token")
-		return "", errors.Error
+		return "", errors.Err
 	}
 
 	return sessionToken, nil
@@ -102,13 +102,13 @@ func (conn *Connection) GenerateSessionToken(userID int) (sessionToken string, e
 
 func (conn *Connection) DeleteSessionToken(sessionToken string) error {
 	if !conn.ContextAlive() {
-		return errors.Error
+		return errors.Err
 	}
 
 	query := `DELETE FROM sessions WHERE session_token = $1`
 	if err := conn.Exec(query, sessionToken); err != nil {
 		conn.log.Error.Println("failed to execute the statement for deleting the session token")
-		return errors.Error
+		return errors.Err
 	}
 
 	return nil
@@ -116,19 +116,19 @@ func (conn *Connection) DeleteSessionToken(sessionToken string) error {
 
 func (conn *Connection) GetSessionToken() (string, error) {
 	if !conn.ContextAlive() {
-		return "", errors.Error
+		return "", errors.Err
 	}
 
 	authHeader := conn.request.Header.Get("Authorization")
 	if authHeader == "" {
 		conn.Error("empty Authorization header", http.StatusUnauthorized)
-		return "", errors.Error
+		return "", errors.Err
 	}
 
 	parts := strings.Split(authHeader, " ")
 	if len(parts) != 2 || parts[0] != "Bearer" {
 		conn.Error("invalid Authorization header", http.StatusUnauthorized)
-		return "", errors.Error
+		return "", errors.Err
 	}
 
 	return parts[1], nil
@@ -145,7 +145,7 @@ func (handler *sessionHandler) handlePost(conn *Connection) error {
 	if err := json.NewDecoder(conn.request.Body).Decode(&requestBody); err != nil {
 		conn.log.Error.Println(err)
 		conn.Error("failed to decode the request body", http.StatusBadRequest)
-		return errors.Error
+		return errors.Err
 	}
 
 	userID, err := conn.AuthenticateViaCredentials(requestBody)
@@ -173,14 +173,14 @@ func (handler *sessionHandler) handlePost(conn *Connection) error {
 			"internal server error",
 			http.StatusInternalServerError,
 		)
-		return errors.Error
+		return errors.Err
 	}
 
 	conn.writer.Header().Set("Content-Type", "application/json")
 
 	if _, err := responseBodyBuffer.WriteTo(conn.writer); err != nil {
 		conn.log.Error.Println("failed to write to the body")
-		return errors.Error
+		return errors.Err
 	}
 
 	return nil
@@ -190,14 +190,14 @@ func (handler *sessionHandler) handleDelete(conn *Connection) error {
 	sessionToken, err := conn.GetSessionToken()
 	if err != nil {
 		conn.log.Error.Println("failed to get the session token")
-		return errors.Error
+		return errors.Err
 	}
 
 	conn.writer.WriteHeader(http.StatusOK)
 
 	if err := conn.DeleteSessionToken(sessionToken); err != nil {
 		conn.log.Error.Println("failed to delete the session token")
-		return errors.Error
+		return errors.Err
 	}
 
 	return nil

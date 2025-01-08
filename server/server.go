@@ -23,7 +23,7 @@ func NewServer(ctx context.Context, ip string, port int) (*Server, error) {
 	db, err := db.Prepare(ctx)
 	if err != nil {
 		server.log.Error.Println("failed to prepare the database")
-		return nil, errors.Error
+		return nil, errors.Err
 	}
 
 	server.Addr = fmt.Sprintf("%s:%d", ip, port)
@@ -39,7 +39,7 @@ func (server *Server) ListenAndServe(ctx context.Context) error {
 	if err != nil {
 		server.log.Error.Println(err)
 		server.log.Error.Printf("failed to listen at %s", server.Addr)
-		return errors.Error
+		return errors.Err
 	}
 
 	server.log.Info.Printf("listening at %v", server.Addr)

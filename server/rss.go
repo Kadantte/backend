@@ -29,14 +29,14 @@ type Item struct {
 
 func (conn *Connection) parseRSS(url string) (*RSS, error) {
 	if !conn.ContextAlive() {
-		return nil, errors.Error
+		return nil, errors.Err
 	}
 
 	// #nosec G107 -- URL is validated before calling this function
 	resp, err := http.Get(url)
 	if err != nil {
 		conn.Error("failed to request the resource", http.StatusBadRequest)
-		return nil, errors.Error
+		return nil, errors.Err
 	}
 	defer resp.Body.Close()
 
@@ -49,19 +49,19 @@ func (conn *Connection) parseRSS(url string) (*RSS, error) {
 		default:
 			conn.Error("the resource is not available", resp.StatusCode)
 		}
-		return nil, errors.Error
+		return nil, errors.Err
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		conn.Error("failed to read the resource", http.StatusUnprocessableEntity)
-		return nil, errors.Error
+		return nil, errors.Err
 	}
 
 	var rss RSS
 	if err := xml.Unmarshal(body, &rss); err != nil {
 		conn.Error("failed to parse the resource as an RSS feed", http.StatusUnprocessableEntity)
-		return nil, errors.Error
+		return nil, errors.Err
 	}
 
 	return &rss, nil

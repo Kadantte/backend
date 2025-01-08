@@ -16,12 +16,12 @@ func Prepare(ctx context.Context) (*DB, error) {
 
 	if err := db.connect(ctx); err != nil {
 		db.log.Error.Println("failed to connect to the database")
-		return nil, errors.Error
+		return nil, errors.Err
 	}
 
 	if err := db.migrate(ctx); err != nil {
 		db.log.Error.Println("failed to migrate the database")
-		return nil, errors.Error
+		return nil, errors.Err
 	}
 
 	db.StartPeriodicStaleSessionsCleanup(ctx)
@@ -58,20 +58,20 @@ func (db *DB) connect(ctx context.Context) error {
 	if err != nil {
 		db.log.Error.Println(err)
 		db.log.Error.Println("failed to parse the database connection string")
-		return errors.Error
+		return errors.Err
 	}
 
 	pool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
 		db.log.Error.Println(err)
 		db.log.Error.Println("failed to create a new database connection pool")
-		return errors.Error
+		return errors.Err
 	}
 
 	if err := pool.Ping(ctx); err != nil {
 		db.log.Error.Println(err)
 		db.log.Error.Println("failed to ping the database")
-		return errors.Error
+		return errors.Err
 	}
 
 	db.Pool = pool
@@ -99,7 +99,7 @@ func (db *DB) migrate(ctx context.Context) error {
 			db.log.Info.Printf("applying migration to database schema version %d\n", migration.version)
 			if _, err := db.Pool.Exec(ctx, migration.sql); err != nil {
 				db.log.Error.Printf("failed to apply migration to database schema version %d", migration.version)
-				return errors.Error
+				return errors.Err
 			}
 		}
 	}
