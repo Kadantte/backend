@@ -66,11 +66,11 @@ func (server *Server) Shutdown(ctx context.Context) {
 	server.log.Info.Println("server shutdown initiated")
 	defer server.log.Info.Println("server shutdown finished")
 
-	server.log.Info.Println("closing all database connections")
-	server.db.Close()
-
 	if err := server.Server.Shutdown(ctx); err != nil {
 		server.log.Error.Println(err)
 		server.log.Error.Println("failed to shutdown the server")
 	}
+
+	server.log.Info.Println("closing all database connections")
+	server.db.Close()
 }
