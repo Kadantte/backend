@@ -78,25 +78,20 @@ func (db *DB) connect(ctx context.Context) error {
 	return nil
 }
 
-func (db *DB) getCurrentVersion(ctx context.Context) (int, error) {
+func (db *DB) getCurrentVersion(ctx context.Context) int {
 	var version int
 
 	row := db.Pool.QueryRow(ctx, "SELECT version FROM schema_version LIMIT 1")
 	if err := row.Scan(&version); err != nil {
 		db.log.Info.Println("assuming the version of the database schema to be 0")
-		return 0, nil
+		return 0
 	}
 
-	return version, nil
+	return version
 }
 
 func (db *DB) migrate(ctx context.Context) error {
-	currentVersion, err := db.getCurrentVersion(ctx)
-	if err != nil {
-		db.log.Error.Println("failed to get the current schema version")
-		return errors.Error
-	}
-
+	currentVersion := db.getCurrentVersion(ctx)
 	db.log.Info.Println("current database schema version:", currentVersion)
 
 	for _, migration := range migrations {
