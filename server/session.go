@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	"morbo/context"
 	"morbo/errors"
 
 	"github.com/jackc/pgx/v5"
@@ -19,16 +20,12 @@ type Credentials struct {
 	Password string `json:"password"`
 }
 
-func (conn *Connection) AuthenticateViaCredentials(credentials Credentials) (userID int, err error) {
-	if !conn.ContextAlive() {
-		return -1, errors.Err
-	}
-
+func (conn *Connection) AuthenticateViaCredentials(ctx context.Context, credentials Credentials) (userID int, err error) {
 	var hashedPassword string
 
 	query := `SELECT id, password FROM users WHERE username = $1`
-	row := conn.QueryRow(query, credentials.Username)
-	if err = conn.ScanRow(row, &userID, &hashedPassword); err != nil {
+	row := conn.QueryRow(ctx, query, credentials.Username)
+	if err = conn.ScanRow(ctx, row, &userID, &hashedPassword); err != nil {
 		switch err {
 		case pgx.ErrNoRows:
 			conn.Error("no such user found", http.StatusUnauthorized)
@@ -47,14 +44,10 @@ func (conn *Connection) AuthenticateViaCredentials(credentials Credentials) (use
 	return userID, nil
 }
 
-func (conn *Connection) AuthenticateViaSessionToken(sessionToken string) (userID int, err error) {
-	if !conn.ContextAlive() {
-		return -1, errors.Err
-	}
-
+func (conn *Connection) AuthenticateViaSessionToken(ctx context.Context, sessionToken string) (userID int, err error) {
 	query := `SELECT user_id FROM sessions WHERE session_token = $1`
-	row := conn.QueryRow(query, sessionToken)
-	if err = conn.ScanRow(row, &userID); err != nil {
+	row := conn.QueryRow(ctx, query, sessionToken)
+	if err = conn.ScanRow(ctx, row, &userID); err != nil {
 		switch err {
 		case pgx.ErrNoRows:
 			conn.Error("no such session token found", http.StatusUnauthorized)
@@ -65,7 +58,7 @@ func (conn *Connection) AuthenticateViaSessionToken(sessionToken string) (userID
 	}
 
 	query = `UPDATE sessions SET last_access = NOW() WHERE session_token = $1`
-	if err := conn.Exec(query, sessionToken); err != nil {
+	if err := conn.Exec(ctx, query, sessionToken); err != nil {
 		conn.log.Error.Println("failed to update the last access time of the session token")
 		return -1, errors.Err
 	}
@@ -73,11 +66,7 @@ func (conn *Connection) AuthenticateViaSessionToken(sessionToken string) (userID
 	return userID, nil
 }
 
-func (conn *Connection) GenerateSessionToken(userID int) (sessionToken string, err error) {
-	if !conn.ContextAlive() {
-		return "", errors.Err
-	}
-
+func (conn *Connection) GenerateSessionToken(ctx context.Context, userID int) (sessionToken string, err error) {
 	byteSessionToken := make([]byte, 40)
 	if _, err := rand.Read(byteSessionToken); err != nil {
 		conn.log.Error.Println(err)
@@ -92,7 +81,7 @@ func (conn *Connection) GenerateSessionToken(userID int) (sessionToken string, e
 	sessionToken = base64.RawURLEncoding.EncodeToString(byteSessionToken)
 
 	query := `INSERT INTO sessions (session_token, user_id) VALUES ($1, $2)`
-	if err := conn.Exec(query, sessionToken, userID); err != nil {
+	if err := conn.Exec(ctx, query, sessionToken, userID); err != nil {
 		conn.log.Error.Println("failed to store a session token")
 		return "", errors.Err
 	}
@@ -100,13 +89,9 @@ func (conn *Connection) GenerateSessionToken(userID int) (sessionToken string, e
 	return sessionToken, nil
 }
 
-func (conn *Connection) DeleteSessionToken(sessionToken string) error {
-	if !conn.ContextAlive() {
-		return errors.Err
-	}
-
+func (conn *Connection) DeleteSessionToken(ctx context.Context, sessionToken string) error {
 	query := `DELETE FROM sessions WHERE session_token = $1`
-	if err := conn.Exec(query, sessionToken); err != nil {
+	if err := conn.Exec(ctx, query, sessionToken); err != nil {
 		conn.log.Error.Println("failed to execute the statement for deleting the session token")
 		return errors.Err
 	}
@@ -115,10 +100,6 @@ func (conn *Connection) DeleteSessionToken(sessionToken string) error {
 }
 
 func (conn *Connection) GetSessionToken() (string, error) {
-	if !conn.ContextAlive() {
-		return "", errors.Err
-	}
-
 	authHeader := conn.request.Header.Get("Authorization")
 	if authHeader == "" {
 		conn.Error("empty Authorization header", http.StatusUnauthorized)
@@ -138,7 +119,7 @@ type sessionHandler struct {
 	baseHandler
 }
 
-func (handler *sessionHandler) handlePost(conn *Connection) error {
+func (handler *sessionHandler) handlePost(ctx context.Context, conn *Connection) error {
 	type RequestBody = Credentials
 
 	var requestBody RequestBody
@@ -148,13 +129,13 @@ func (handler *sessionHandler) handlePost(conn *Connection) error {
 		return errors.Err
 	}
 
-	userID, err := conn.AuthenticateViaCredentials(requestBody)
+	userID, err := conn.AuthenticateViaCredentials(ctx, requestBody)
 	if err != nil {
 		conn.log.Error.Println("failed to authenticate via credentials")
 		return err
 	}
 
-	sessionToken, err := conn.GenerateSessionToken(userID)
+	sessionToken, err := conn.GenerateSessionToken(ctx, userID)
 	if err != nil {
 		conn.log.Error.Println("failed to generate a session token")
 		return err
@@ -186,7 +167,7 @@ func (handler *sessionHandler) handlePost(conn *Connection) error {
 	return nil
 }
 
-func (handler *sessionHandler) handleDelete(conn *Connection) error {
+func (handler *sessionHandler) handleDelete(ctx context.Context, conn *Connection) error {
 	sessionToken, err := conn.GetSessionToken()
 	if err != nil {
 		conn.log.Error.Println("failed to get the session token")
@@ -195,7 +176,7 @@ func (handler *sessionHandler) handleDelete(conn *Connection) error {
 
 	conn.writer.WriteHeader(http.StatusOK)
 
-	if err := conn.DeleteSessionToken(sessionToken); err != nil {
+	if err := conn.DeleteSessionToken(ctx, sessionToken); err != nil {
 		conn.log.Error.Println("failed to delete the session token")
 		return errors.Err
 	}
@@ -210,18 +191,18 @@ func (handler *sessionHandler) handleOptions(writer http.ResponseWriter, _ *http
 }
 
 func (handler *sessionHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	ctx := context.Background()
 	conn := NewConnection(&handler.baseHandler, writer, request)
-	defer conn.Disconnect()
 
 	conn.log.Info.Printf("%s %s\n", request.Method, request.URL.Path)
 
 	switch request.Method {
 	case http.MethodPost:
-		if err := handler.handlePost(conn); err != nil {
+		if err := handler.handlePost(ctx, conn); err != nil {
 			conn.log.Error.Println("failed to handle the POST request to \"/session/\"")
 		}
 	case http.MethodDelete:
-		if err := handler.handleDelete(conn); err != nil {
+		if err := handler.handleDelete(ctx, conn); err != nil {
 			conn.log.Error.Println("failed to handle the DELETE request to \"/session/\"")
 		}
 	case http.MethodOptions:

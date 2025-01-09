@@ -3,7 +3,6 @@ package server
 import (
 	"fmt"
 	"net/http"
-	"time"
 
 	"morbo/context"
 	"morbo/db"
@@ -11,13 +10,10 @@ import (
 )
 
 type Connection struct {
-	ctx     context.Context
 	db      *db.DB
 	writer  http.ResponseWriter
 	request *http.Request
-
-	cancelContext context.CancelFunc
-	log           log.Log
+	log     log.Log
 }
 
 func BigEndianUInt40(b []byte) uint64 {
@@ -30,10 +26,9 @@ func NewConnection(
 	writer http.ResponseWriter,
 	request *http.Request,
 ) *Connection {
-	ctx, cancel := context.WithTimeout(handler.ctx, 15*time.Second)
 	id := handler.newConnectionID()
 	log := log.NewLog(id)
-	conn := &Connection{ctx, handler.db, writer, request, cancel, log}
+	conn := &Connection{handler.db, writer, request, log}
 
 	if origin := conn.request.Header.Get("Origin"); origin != "" {
 		conn.writer.Header().Set("Access-Control-Allow-Origin", origin)
@@ -53,8 +48,8 @@ func (conn *Connection) DistinctError(serverMessage string, userMessage string, 
 	fmt.Fprint(conn.writer, userMessage)
 }
 
-func (conn *Connection) ContextAlive() bool {
-	if err := conn.ctx.Err(); err != nil {
+func (conn *Connection) ContextAlive(ctx context.Context) bool {
+	if err := ctx.Err(); err != nil {
 		switch err {
 		case context.ErrCanceled:
 			conn.Error("the request has been canceled by the server", http.StatusServiceUnavailable)
@@ -64,8 +59,4 @@ func (conn *Connection) ContextAlive() bool {
 		return false
 	}
 	return true
-}
-
-func (conn *Connection) Disconnect() {
-	conn.cancelContext()
 }

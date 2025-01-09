@@ -3,17 +3,18 @@ package server
 import (
 	"net/http"
 
+	"morbo/context"
 	"morbo/errors"
 
 	"github.com/jackc/pgx/v5"
 )
 
-func (conn *Connection) QueryRow(query string, args ...any) pgx.Row {
-	return conn.db.Pool.QueryRow(conn.ctx, query, args...)
+func (conn *Connection) QueryRow(ctx context.Context, query string, args ...any) pgx.Row {
+	return conn.db.Pool.QueryRow(ctx, query, args...)
 }
 
-func (conn *Connection) ScanRow(row pgx.Row, dest ...any) error {
-	if !conn.ContextAlive() {
+func (conn *Connection) ScanRow(ctx context.Context, row pgx.Row, dest ...any) error {
+	if !conn.ContextAlive(ctx) {
 		return errors.Err
 	}
 
@@ -34,12 +35,12 @@ func (conn *Connection) ScanRow(row pgx.Row, dest ...any) error {
 	return err
 }
 
-func (conn *Connection) Exec(query string, args ...any) error {
-	if !conn.ContextAlive() {
+func (conn *Connection) Exec(ctx context.Context, query string, args ...any) error {
+	if !conn.ContextAlive(ctx) {
 		return errors.Err
 	}
 
-	if _, err := conn.db.Pool.Exec(conn.ctx, query, args...); err != nil {
+	if _, err := conn.db.Pool.Exec(ctx, query, args...); err != nil {
 		conn.log.Error.Println(err)
 		conn.DistinctError(
 			"failed to execute the statement",

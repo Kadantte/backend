@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strings"
 
+	"morbo/context"
 	"morbo/errors"
 )
 
@@ -67,14 +68,14 @@ func (conn *Connection) validateURL(rawURL string) error {
 	return nil
 }
 
-func (handler *feedHandler) handlePost(conn *Connection) error {
+func (handler *feedHandler) handlePost(ctx context.Context, conn *Connection) error {
 	sessionToken, err := conn.GetSessionToken()
 	if err != nil {
 		conn.log.Error.Println("failed to get the session token")
 		return errors.Err
 	}
 
-	if _, err := conn.AuthenticateViaSessionToken(sessionToken); err != nil {
+	if _, err := conn.AuthenticateViaSessionToken(ctx, sessionToken); err != nil {
 		conn.log.Error.Println("failed to authenticate via the session token")
 		return errors.Err
 	}
@@ -96,7 +97,7 @@ func (handler *feedHandler) handlePost(conn *Connection) error {
 		return errors.Err
 	}
 
-	rss, err := conn.parseRSS(requestBody.URL)
+	rss, err := conn.parseRSS(ctx, requestBody.URL)
 	if err != nil {
 		conn.log.Error.Println("failed to parse the RSS feed")
 		return errors.Err
@@ -135,14 +136,14 @@ func (handler *feedHandler) handleOptions(writer http.ResponseWriter, _ *http.Re
 }
 
 func (handler *feedHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	ctx := context.Background()
 	conn := NewConnection(&handler.baseHandler, writer, request)
-	defer conn.Disconnect()
 
 	conn.log.Info.Printf("%s %s %s\n", request.RemoteAddr, request.Method, request.URL.Path)
 
 	switch request.Method {
 	case http.MethodPost:
-		if err := handler.handlePost(conn); err != nil {
+		if err := handler.handlePost(ctx, conn); err != nil {
 			conn.log.Error.Println("failed to handle the POST request to \"/feed/\"")
 		}
 	case http.MethodOptions:

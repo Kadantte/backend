@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 
+	"morbo/context"
 	"morbo/errors"
 )
 
@@ -27,8 +28,8 @@ type Item struct {
 	PubDate     string `xml:"pubDate"`
 }
 
-func (conn *Connection) parseRSS(url string) (*RSS, error) {
-	if !conn.ContextAlive() {
+func (conn *Connection) parseRSS(ctx context.Context, url string) (*RSS, error) {
+	if !conn.ContextAlive(ctx) {
 		return nil, errors.Err
 	}
 

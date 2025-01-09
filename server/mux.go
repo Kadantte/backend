@@ -5,13 +5,11 @@ import (
 	"fmt"
 	"net/http"
 
-	"morbo/context"
 	"morbo/db"
 	"morbo/log"
 )
 
 type baseHandler struct {
-	ctx context.Context
 	db  *db.DB
 	log log.Log
 }
@@ -25,23 +23,13 @@ func (handler *baseHandler) newConnectionID() string {
 	return fmt.Sprintf("%011x", number)
 }
 
-type ServeMux struct {
-	http.ServeMux
+func NewServeMux(db *db.DB) *http.ServeMux {
+	baseHandler := baseHandler{db, log.NewLog("handler")}
 
-	feedHandler    feedHandler
-	sessionHandler sessionHandler
-}
-
-func NewServeMux(ctx context.Context, db *db.DB) *ServeMux {
-	baseHandler := baseHandler{ctx, db, log.NewLog("handler")}
-	mux := ServeMux{
-		feedHandler:    feedHandler{baseHandler},
-		sessionHandler: sessionHandler{baseHandler},
-	}
-
+	mux := http.ServeMux{}
 	mux.Handle("/{$}", http.NotFoundHandler())
-	mux.Handle("/feed/{$}", &mux.feedHandler)
-	mux.Handle("/session/{$}", &mux.sessionHandler)
+	mux.Handle("/feed/{$}", &feedHandler{baseHandler})
+	mux.Handle("/session/{$}", &sessionHandler{baseHandler})
 
 	return &mux
 }
