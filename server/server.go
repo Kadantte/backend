@@ -17,19 +17,25 @@ type Server struct {
 	log log.Log
 }
 
-func NewServer(ctx context.Context, ip string, port int) (*Server, error) {
-	server := Server{log: log.NewLog("server")}
+func NewServer(ip string, port int) *Server {
+	db := db.NewDB()
+	return &Server{
+		Server: http.Server{
+			Addr:    fmt.Sprintf("%s:%d", ip, port),
+			Handler: NewServeMux(db),
+		},
+		db:  db,
+		log: log.NewLog("server"),
+	}
+}
 
-	db, err := db.Prepare(ctx)
-	if err != nil {
+func (server *Server) Prepare(ctx context.Context) error {
+	if err := server.db.Prepare(ctx); err != nil {
 		server.log.Error.Println("failed to prepare the database")
-		return nil, errors.Err
+		return errors.Err
 	}
 
-	server.Addr = fmt.Sprintf("%s:%d", ip, port)
-	server.Handler = NewServeMux(db)
-	server.db = db
-	return &server, nil
+	return nil
 }
 
 func (server *Server) ListenAndServe(ctx context.Context) error {

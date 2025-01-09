@@ -25,8 +25,9 @@ func main() {
 
 	log := log.NewLog("main")
 
-	server, err := server.NewServer(ctx, "0.0.0.0", 80)
-	if err != nil {
+	server := server.NewServer("0.0.0.0", 80)
+
+	if err := server.Prepare(ctx); err != nil {
 		log.Error.Fatalln("failed to create the server")
 	}
 

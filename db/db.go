@@ -10,3 +10,7 @@ type DB struct {
 	Pool *pgxpool.Pool
 	log  log.Log
 }
+
+func NewDB() *DB {
+	return &DB{nil, log.NewLog("db")}
+}

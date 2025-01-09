@@ -6,27 +6,24 @@ import (
 	"os"
 
 	"morbo/errors"
-	"morbo/log"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func Prepare(ctx context.Context) (*DB, error) {
-	db := DB{log: log.NewLog("db")}
-
+func (db *DB) Prepare(ctx context.Context) error {
 	if err := db.connect(ctx); err != nil {
 		db.log.Error.Println("failed to connect to the database")
-		return nil, errors.Err
+		return errors.Err
 	}
 
 	if err := db.migrate(ctx); err != nil {
 		db.log.Error.Println("failed to migrate the database")
-		return nil, errors.Err
+		return errors.Err
 	}
 
 	db.StartPeriodicStaleSessionsCleanup(ctx)
 
-	return &db, nil
+	return nil
 }
 
 func (db *DB) connect(ctx context.Context) error {
