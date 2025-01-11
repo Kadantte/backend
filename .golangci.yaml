@@ -5,6 +5,7 @@ linters:
     - exportloopref
     - forbidigo
     - ireturn
+    - mnd
     - nlreturn
     - varnamelen
     - wsl
