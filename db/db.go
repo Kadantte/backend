@@ -7,10 +7,15 @@ import (
 )
 
 type DB struct {
-	Pool *pgxpool.Pool
-	log  log.Log
+	Pool       *pgxpool.Pool
+	log        log.Log
+	migrations []migration
 }
 
 func NewDB() *DB {
-	return &DB{nil, log.NewLog("db")}
+	return &DB{
+		Pool:       nil,
+		log:        log.NewLog("db"),
+		migrations: newMigrations(),
+	}
 }

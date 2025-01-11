@@ -91,7 +91,7 @@ func (db *DB) migrate(ctx context.Context) error {
 	currentVersion := db.getCurrentVersion(ctx)
 	db.log.Info.Println("current database schema version:", currentVersion)
 
-	for _, migration := range migrations {
+	for _, migration := range db.migrations {
 		if migration.version > currentVersion {
 			db.log.Info.Printf("applying migration to database schema version %d\n", migration.version)
 			if _, err := db.Pool.Exec(ctx, migration.sql); err != nil {
