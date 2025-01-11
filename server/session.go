@@ -191,7 +191,7 @@ func (handler *sessionHandler) handleOptions(writer http.ResponseWriter, _ *http
 }
 
 func (handler *sessionHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	ctx := context.Background()
+	ctx := request.Context()
 
 	conn := NewConnection(&handler.baseHandler, writer, request)
 	conn.SendOriginHeaders()

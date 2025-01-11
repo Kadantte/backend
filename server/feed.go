@@ -136,7 +136,7 @@ func (handler *feedHandler) handleOptions(writer http.ResponseWriter, _ *http.Re
 }
 
 func (handler *feedHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	ctx := context.Background()
+	ctx := request.Context()
 
 	conn := NewConnection(&handler.baseHandler, writer, request)
 	conn.SendOriginHeaders()
