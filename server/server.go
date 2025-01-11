@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"time"
 
 	"morbo/context"
 	"morbo/db"
@@ -21,8 +22,11 @@ func NewServer(ip string, port int) *Server {
 	db := db.NewDB()
 	return &Server{
 		Server: http.Server{
-			Addr:    fmt.Sprintf("%s:%d", ip, port),
-			Handler: NewServeMux(db),
+			Addr:         fmt.Sprintf("%s:%d", ip, port),
+			Handler:      NewServeMux(db),
+			ReadTimeout:  5 * time.Second,
+			WriteTimeout: 20 * time.Second,
+			IdleTimeout:  30 * time.Second,
 		},
 		db:  db,
 		log: log.NewLog("server"),
