@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"net/http"
 
 	"morbo/context"
@@ -45,7 +44,7 @@ func (conn *Connection) Error(message string, statusCode int) {
 func (conn *Connection) DistinctError(serverMessage string, userMessage string, statusCode int) {
 	conn.log.Error.Println(serverMessage)
 	conn.writer.WriteHeader(statusCode)
-	fmt.Fprint(conn.writer, userMessage)
+	conn.writer.Write([]byte(userMessage))
 }
 
 func (conn *Connection) ContextAlive(ctx context.Context) bool {
