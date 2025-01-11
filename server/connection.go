@@ -28,14 +28,14 @@ func NewConnection(
 ) *Connection {
 	id := handler.newConnectionID()
 	log := log.NewLog(id)
-	conn := &Connection{handler.db, writer, request, log}
+	return &Connection{handler.db, writer, request, log}
+}
 
+func (conn *Connection) SendOriginHeaders() {
 	if origin := conn.request.Header.Get("Origin"); origin != "" {
 		conn.writer.Header().Set("Access-Control-Allow-Origin", origin)
 	}
 	conn.writer.Header().Set("Vary", "Origin")
-
-	return conn
 }
 
 func (conn *Connection) Error(message string, statusCode int) {
