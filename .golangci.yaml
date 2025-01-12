@@ -3,6 +3,7 @@ linters:
   disable:
     - cyclop
     - depguard
+    - err113
     - exportloopref
     - forbidigo
     - ireturn
