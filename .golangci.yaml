@@ -19,3 +19,5 @@ linters-settings:
     custom-order: true
   gofumpt:
     module-path: morbo
+  lll:
+    line-length: 125
