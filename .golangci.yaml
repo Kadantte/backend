@@ -13,6 +13,8 @@ linters:
     - varnamelen
     - wsl
 linters-settings:
+  errorlint:
+    comparison: false
   gci:
     sections:
       - standard
