@@ -9,20 +9,10 @@ import (
 )
 
 type Connection struct {
+	db      *db.DB
+	log     *log.Log
 	writer  http.ResponseWriter
 	request *http.Request
-	db      *db.DB
-	log     log.Log
-}
-
-func NewConnection(
-	writer http.ResponseWriter,
-	request *http.Request,
-	db *db.DB,
-	id string,
-) *Connection {
-	log := log.NewLog(id)
-	return &Connection{writer, request, db, log}
 }
 
 func (conn *Connection) SendOriginHeaders() {

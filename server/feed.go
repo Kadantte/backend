@@ -12,9 +12,7 @@ import (
 	"morbo/errors"
 )
 
-type feedHandler struct {
-	baseHandler
-}
+type feedHandler struct{}
 
 func (conn *Connection) validateURL(rawURL string) error {
 	const maximumURLLength = 2048

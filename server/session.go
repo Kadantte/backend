@@ -115,9 +115,7 @@ func (conn *Connection) GetSessionToken() (string, error) {
 	return parts[1], nil
 }
 
-type sessionHandler struct {
-	baseHandler
-}
+type sessionHandler struct{}
 
 func (handler *sessionHandler) handlePost(ctx context.Context, conn *Connection) error {
 	type RequestBody = Credentials

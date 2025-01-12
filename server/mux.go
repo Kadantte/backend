@@ -11,7 +11,7 @@ import (
 	"morbo/log"
 )
 
-type baseHandler struct {
+type handlerCtx struct {
 	db  *db.DB
 	log log.Log
 }
@@ -21,13 +21,19 @@ func BigEndianUInt40(b []byte) uint64 {
 	return uint64(b[4]) | uint64(b[3])<<8 | uint64(b[2])<<16 | uint64(b[1])<<24 | uint64(b[0])<<32
 }
 
-func (handler *baseHandler) newConnectionID() string {
+func (handlerCtx *handlerCtx) newConnectionID() string {
 	bytes := make([]byte, 5)
 	if _, err := rand.Read(bytes); err != nil {
-		handler.log.Error.Println("failed to generate a new ID")
+		handlerCtx.log.Error.Println("failed to generate a new ID")
 	}
 	number := BigEndianUInt40(bytes)
 	return fmt.Sprintf("%011x", number)
+}
+
+func (handlerCtx *handlerCtx) newConnection(writer http.ResponseWriter, request *http.Request) *Connection {
+	id := handlerCtx.newConnectionID()
+	log := log.NewLog(id)
+	return &Connection{handlerCtx.db, &log, writer, request}
 }
 
 type HandlerFunc func(*Connection)
@@ -85,13 +91,11 @@ func timeoutMiddleware(handler Handler) Handler {
 	return HandlerFunc(f)
 }
 
-func finalHandler(baseHandler *baseHandler, handler Handler) http.Handler {
+func finalHandler(handlerCtx *handlerCtx, handler Handler) http.Handler {
 	finalHandler := timeoutMiddleware(handler)
 
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		id := baseHandler.newConnectionID()
-
-		conn := NewConnection(writer, request, baseHandler.db, id)
+		conn := handlerCtx.newConnection(writer, request)
 		conn.SendOriginHeaders()
 
 		finalHandler.Handle(conn)
@@ -99,9 +103,9 @@ func finalHandler(baseHandler *baseHandler, handler Handler) http.Handler {
 }
 
 func NewServeMux(db *db.DB) *http.ServeMux {
-	baseHandler := baseHandler{db, log.NewLog("handler")}
-	feedHandler := finalHandler(&baseHandler, &feedHandler{baseHandler})
-	sessionHandler := finalHandler(&baseHandler, &sessionHandler{baseHandler})
+	handlerCtx := handlerCtx{db, log.NewLog("handler")}
+	feedHandler := finalHandler(&handlerCtx, &feedHandler{})
+	sessionHandler := finalHandler(&handlerCtx, &sessionHandler{})
 
 	mux := http.ServeMux{}
 	mux.Handle("/{$}", http.NotFoundHandler())
