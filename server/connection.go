@@ -44,7 +44,9 @@ func (conn *Connection) Error(message string, statusCode int) {
 func (conn *Connection) DistinctError(serverMessage string, userMessage string, statusCode int) {
 	conn.log.Error.Println(serverMessage)
 	conn.writer.WriteHeader(statusCode)
-	conn.writer.Write([]byte(userMessage))
+	if _, err := conn.writer.Write([]byte(userMessage)); err != nil {
+		conn.log.Error.Println("failed to write the response")
+	}
 }
 
 func (conn *Connection) ContextAlive(ctx context.Context) bool {
