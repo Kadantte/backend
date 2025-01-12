@@ -129,28 +129,30 @@ func (handler *feedHandler) handlePost(ctx context.Context, conn *Connection) er
 	return nil
 }
 
-func (handler *feedHandler) handleOptions(writer http.ResponseWriter, _ *http.Request) {
-	writer.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
-	writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
-	writer.WriteHeader(http.StatusOK)
+func (handler *feedHandler) handleOptions(conn *Connection) {
+	conn.writer.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+	conn.writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+	conn.writer.WriteHeader(http.StatusOK)
 }
 
-func (handler *feedHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	ctx := request.Context()
+func (handler *feedHandler) Handle(conn *Connection) {
+	ctx := conn.request.Context()
 
-	conn := NewConnection(&handler.baseHandler, writer, request)
-	conn.SendOriginHeaders()
+	conn.log.Info.Printf(
+		"%s %s %s\n",
+		conn.request.RemoteAddr,
+		conn.request.Method,
+		conn.request.URL.Path,
+	)
 
-	conn.log.Info.Printf("%s %s %s\n", request.RemoteAddr, request.Method, request.URL.Path)
-
-	switch request.Method {
+	switch conn.request.Method {
 	case http.MethodPost:
 		if err := handler.handlePost(ctx, conn); err != nil {
 			conn.log.Error.Println("failed to handle the POST request to \"/feed/\"")
 		}
 	case http.MethodOptions:
-		handler.handleOptions(writer, request)
+		handler.handleOptions(conn)
 	default:
-		writer.WriteHeader(http.StatusMethodNotAllowed)
+		conn.writer.WriteHeader(http.StatusMethodNotAllowed)
 	}
 }

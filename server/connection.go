@@ -9,25 +9,20 @@ import (
 )
 
 type Connection struct {
-	db      *db.DB
 	writer  http.ResponseWriter
 	request *http.Request
+	db      *db.DB
 	log     log.Log
 }
 
-func BigEndianUInt40(b []byte) uint64 {
-	_ = b[4]
-	return uint64(b[4]) | uint64(b[3])<<8 | uint64(b[2])<<16 | uint64(b[1])<<24 | uint64(b[0])<<32
-}
-
 func NewConnection(
-	handler *baseHandler,
 	writer http.ResponseWriter,
 	request *http.Request,
+	db *db.DB,
+	id string,
 ) *Connection {
-	id := handler.newConnectionID()
 	log := log.NewLog(id)
-	return &Connection{handler.db, writer, request, log}
+	return &Connection{writer, request, db, log}
 }
 
 func (conn *Connection) SendOriginHeaders() {

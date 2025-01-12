@@ -16,6 +16,30 @@ type baseHandler struct {
 	log log.Log
 }
 
+func BigEndianUInt40(b []byte) uint64 {
+	_ = b[4]
+	return uint64(b[4]) | uint64(b[3])<<8 | uint64(b[2])<<16 | uint64(b[1])<<24 | uint64(b[0])<<32
+}
+
+func (handler *baseHandler) newConnectionID() string {
+	bytes := make([]byte, 5)
+	if _, err := rand.Read(bytes); err != nil {
+		handler.log.Error.Println("failed to generate a new ID")
+	}
+	number := BigEndianUInt40(bytes)
+	return fmt.Sprintf("%011x", number)
+}
+
+type HandlerFunc func(*Connection)
+
+func (f HandlerFunc) Handle(conn *Connection) {
+	f(conn)
+}
+
+type Handler interface {
+	Handle(*Connection)
+}
+
 type timeoutResponseWriter struct {
 	http.ResponseWriter
 	timedOut atomic.Bool
@@ -37,13 +61,16 @@ func (timeoutWriter *timeoutResponseWriter) Write(b []byte) (int, error) {
 	return timeoutWriter.ResponseWriter.Write(b)
 }
 
-func timeoutMiddleware(handler http.Handler) http.Handler {
-	f := func(writer http.ResponseWriter, request *http.Request) {
-		timeoutWriter := timeoutResponseWriter{ResponseWriter: writer}
+func timeoutMiddleware(handler Handler) Handler {
+	f := func(conn *Connection) {
+		timeoutWriter := timeoutResponseWriter{ResponseWriter: conn.writer}
+
+		timeoutConn := *conn
+		timeoutConn.writer = &timeoutWriter
 
 		done := make(chan struct{})
 		go func() {
-			handler.ServeHTTP(&timeoutWriter, request)
+			handler.Handle(&timeoutConn)
 			close(done)
 		}()
 
@@ -51,28 +78,30 @@ func timeoutMiddleware(handler http.Handler) http.Handler {
 		case <-done:
 		case <-time.After(15 * time.Second):
 			timeoutWriter.timedOut.Store(true)
-
-			writer.WriteHeader(http.StatusGatewayTimeout)
-			writer.Write([]byte("took too long to finish the request"))
+			conn.Error("took too long to finish the request", http.StatusGatewayTimeout)
 		}
 	}
 
-	return http.HandlerFunc(f)
+	return HandlerFunc(f)
 }
 
-func (handler *baseHandler) newConnectionID() string {
-	bytes := make([]byte, 5)
-	if _, err := rand.Read(bytes); err != nil {
-		handler.log.Error.Println("failed to generate a new ID")
-	}
-	number := BigEndianUInt40(bytes)
-	return fmt.Sprintf("%011x", number)
+func finalHandler(baseHandler *baseHandler, handler Handler) http.Handler {
+	finalHandler := timeoutMiddleware(handler)
+
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		id := baseHandler.newConnectionID()
+
+		conn := NewConnection(writer, request, baseHandler.db, id)
+		conn.SendOriginHeaders()
+
+		finalHandler.Handle(conn)
+	})
 }
 
 func NewServeMux(db *db.DB) *http.ServeMux {
 	baseHandler := baseHandler{db, log.NewLog("handler")}
-	feedHandler := timeoutMiddleware(&feedHandler{baseHandler})
-	sessionHandler := timeoutMiddleware(&sessionHandler{baseHandler})
+	feedHandler := finalHandler(&baseHandler, &feedHandler{baseHandler})
+	sessionHandler := finalHandler(&baseHandler, &sessionHandler{baseHandler})
 
 	mux := http.ServeMux{}
 	mux.Handle("/{$}", http.NotFoundHandler())
