@@ -4,6 +4,7 @@ linters:
     - cyclop
     - depguard
     - err113
+    - exhaustruct
     - exportloopref
     - forbidigo
     - ireturn
