@@ -12,6 +12,7 @@ linters:
     - nlreturn
     - nosprintfhostport
     - varnamelen
+    - wrapcheck
     - wsl
 linters-settings:
   errorlint:
