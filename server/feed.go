@@ -56,6 +56,11 @@ func (conn *Connection) validateURL(rawURL string) error {
 	}
 
 	ips, err := net.LookupIP(host)
+	if err != nil {
+		conn.Error("failed to lookup the IPs of the provided host", http.StatusBadRequest)
+		return errors.Err
+	}
+
 	for _, ip := range ips {
 		if ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsPrivate() {
 			conn.Error("one of the resolved IPs is not allowed", http.StatusBadRequest)
