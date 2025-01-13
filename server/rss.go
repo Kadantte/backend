@@ -33,27 +33,36 @@ func (conn *Connection) parseRSS(ctx context.Context, url string) (*RSS, error) 
 		return nil, errors.Err
 	}
 
-	// #nosec G107 -- URL is validated before calling this function
-	resp, err := http.Get(url)
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		conn.DistinctError(
+			"failed to prepare a request to the resource",
+			"internal server error",
+			http.StatusInternalServerError,
+		)
+		return nil, errors.Err
+	}
+
+	response, err := http.DefaultClient.Do(request)
 	if err != nil {
 		conn.Error("failed to request the resource", http.StatusBadRequest)
 		return nil, errors.Err
 	}
-	defer resp.Body.Close()
+	defer response.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		switch resp.StatusCode {
+	if response.StatusCode != http.StatusOK {
+		switch response.StatusCode {
 		case http.StatusNotFound:
 			conn.Error("couldn't find the resource", http.StatusNotFound)
 		case http.StatusForbidden:
 			conn.Error("the resource is forbidden", http.StatusForbidden)
 		default:
-			conn.Error("the resource is not available", resp.StatusCode)
+			conn.Error("the resource is not available", response.StatusCode)
 		}
 		return nil, errors.Err
 	}
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		conn.Error("failed to read the resource", http.StatusUnprocessableEntity)
 		return nil, errors.Err
