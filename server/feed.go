@@ -58,7 +58,7 @@ func (conn *Connection) validateURL(rawURL string) error {
 	ips, err := net.LookupIP(host)
 	for _, ip := range ips {
 		if ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsPrivate() {
-			conn.Error("resolved IP is not allowed", http.StatusBadRequest)
+			conn.Error("one of the resolved IPs is not allowed", http.StatusBadRequest)
 			return errors.Err
 		}
 	}
