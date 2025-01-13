@@ -20,12 +20,13 @@ type Credentials struct {
 	Password string `json:"password"`
 }
 
-func (conn *Connection) AuthenticateViaCredentials(ctx context.Context, credentials Credentials) (userID int, err error) {
+func (conn *Connection) AuthenticateViaCredentials(ctx context.Context, credentials Credentials) (int, error) {
+	var userID int
 	var hashedPassword string
 
 	query := `SELECT id, password FROM users WHERE username = $1`
 	row := conn.QueryRow(ctx, query, credentials.Username)
-	if err = conn.ScanRow(ctx, row, &userID, &hashedPassword); err != nil {
+	if err := conn.ScanRow(ctx, row, &userID, &hashedPassword); err != nil {
 		switch err {
 		case pgx.ErrNoRows:
 			conn.Error("no such user found", http.StatusUnauthorized)
@@ -35,7 +36,7 @@ func (conn *Connection) AuthenticateViaCredentials(ctx context.Context, credenti
 		return -1, errors.Err
 	}
 
-	if err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(credentials.Password)); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(credentials.Password)); err != nil {
 		conn.log.Error.Println(err)
 		conn.Error("password doesn't match", http.StatusUnauthorized)
 		return -1, errors.Err
@@ -44,10 +45,12 @@ func (conn *Connection) AuthenticateViaCredentials(ctx context.Context, credenti
 	return userID, nil
 }
 
-func (conn *Connection) AuthenticateViaSessionToken(ctx context.Context, sessionToken string) (userID int, err error) {
+func (conn *Connection) AuthenticateViaSessionToken(ctx context.Context, sessionToken string) (int, error) {
+	var userID int
+
 	query := `SELECT user_id FROM sessions WHERE session_token = $1`
 	row := conn.QueryRow(ctx, query, sessionToken)
-	if err = conn.ScanRow(ctx, row, &userID); err != nil {
+	if err := conn.ScanRow(ctx, row, &userID); err != nil {
 		switch err {
 		case pgx.ErrNoRows:
 			conn.Error("no such session token found", http.StatusUnauthorized)
@@ -66,7 +69,9 @@ func (conn *Connection) AuthenticateViaSessionToken(ctx context.Context, session
 	return userID, nil
 }
 
-func (conn *Connection) GenerateSessionToken(ctx context.Context, userID int) (sessionToken string, err error) {
+func (conn *Connection) GenerateSessionToken(ctx context.Context, userID int) (string, error) {
+	var sessionToken string
+
 	byteSessionToken := make([]byte, 40)
 	if _, err := rand.Read(byteSessionToken); err != nil {
 		conn.log.Error.Println(err)
