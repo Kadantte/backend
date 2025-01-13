@@ -43,7 +43,7 @@ func (f HandlerFunc) Handle(conn *Connection) {
 }
 
 type Handler interface {
-	Handle(*Connection)
+	Handle(conn *Connection)
 }
 
 type timeoutResponseWriter struct {
