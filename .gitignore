@@ -1,0 +1,6 @@
+.direnv
+.idea
+.vscode
+.zed
+
+/morbo
