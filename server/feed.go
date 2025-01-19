@@ -100,7 +100,7 @@ func (handler *feedHandler) handlePost(ctx context.Context, conn *Connection) er
 		return errors.Err
 	}
 
-	rss, err := conn.parseRSS(ctx, requestBody.URL)
+	feed, err := conn.parseRSS(ctx, requestBody.URL)
 	if err != nil {
 		conn.log.Error.Println("failed to parse the RSS feed")
 		return errors.Err
@@ -110,7 +110,7 @@ func (handler *feedHandler) handlePost(ctx context.Context, conn *Connection) er
 		Title string `json:"title"`
 	}
 
-	responseBody := ResponseBody{rss.Channel.Title}
+	responseBody := ResponseBody{feed.Channel.Title}
 
 	var responseBodyBuffer bytes.Buffer
 	if err := json.NewEncoder(&responseBodyBuffer).Encode(&responseBody); err != nil {
